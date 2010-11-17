@@ -1,40 +1,19 @@
 ![pallet logo](http://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
 
-Pallet is used to provision and maintain compute nodes, and aims to solve the
-problem of providing a consistently configured running image across a range of
-clouds.  It is designed for use from the [Clojure](http://clojure.org) REPL, from
-clojure code, and from the command line.
+[Pallet](http://github.com/hugoduncan/pallet) is used
+to provision and maintain compute nodes, and aims to solve the problem of
+providing a consistently configured running image across a range of clouds.  It
+is designed for use from the [Clojure](http://clojure.org) REPL, from clojure
+code, and from the command line.
 
-It uses [jclouds](http://github.com/jclouds/jclouds) to gain portable access to
-different cloud providers.  While jclouds solves the issue of creating,
-destroying and configuring cloud level access to nodes, it does not address the
-differences in images used across providers.  This is what Pallet adds.
-
-`defnode` is used to decalre node types, specifying the image template and
-possibly bootstrap and other configuration. The `converge` function can then be
-used to control the number of nodes of each type that are running in your cloud,
-and applies the declared configuration as required.  The `lift` function can
-also be used to apply configuration without adjusting node counts.  Both
-converge and lift accept inline definiton of configuration actions that should
-be run.
-
-In pallet, low level resources can be combined in clojure functions, known as
-crates, that are used to specify configuration.  Crates are clojure functions
-that have an initial `request` argument, and can call other crates, with
-arguments, as required. The request argument is used to carry the configuration
-request state, and is updated, and returned by each reasource function.  The
-request map must be threaded through each resource or crate call.
-
-Crates can be packaged and distributed as clojure jar files.
-
-Some basic [documentation](http://hugoduncan.github.com/pallet) is available.
+This repository contains the core pallet crates.
 
 ## Usage
 
-[See demo documentation](http://hugoduncan.github.com/pallet/autodoc/demo-api.html).
+The simplest way to use these crates is to make your project depend on the
+`complete` artifact (or `standalone` if you want a single jar).
 
-There is an introductory [screencast](http://www.youtube.com/hugoduncan),
-showing a basic node configuration, and starting and stopping a node.
+Alternatively you can depend on the individual crates that you use.
 
 ## Support
 
@@ -42,35 +21,11 @@ showing a basic node configuration, and starting and stopping a node.
 
 ## Installation
 
-Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/org.cloudhoist/pallet).
+pallet-crates is distributed as a set of jars, and is available in the [sonatype repository](http://oss.sonatype.org/content/repositories/releases/org/cloudhoist).
 
-Installation is with maven or your favourite maven repository aware build tool.
+Installation is with maven, lein, cake, or your favourite maven repository aware
+build tool.
 
-### Quickstart
-
-If you just want to try out pallet, then you can follow these instructions:
-
-- Download [the tarfile](http://github.com/hugoduncan/pallet/tarball/master)
-  or [zipfile](http://github.com/hugoduncan/pallet/zipball/master), and unpack.
-
-- Install [Maven](http://maven.apache.org/).
-
-- In a shell, go to the directory containing the pallet source code and enter
-
-        $ mvn clojure:repl
-
-You should now have a working repl, which you can use to explore pallet.  You
-might want to make the basic pallet commands available without namespace prefix
-by typing the following at the repl.
-
-        user> (use 'pallet.repl)
-	user> (use-pallet)
-
-
-## See also
-[jclouds](http://github.com/jclouds/jclouds),
-[chef](http://wiki.opscode.com/display/chef/Home),
-[crane](http://github.com/bradford/crane)
 
 ## License
 
