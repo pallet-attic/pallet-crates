@@ -1,6 +1,6 @@
-![pallet logo](http://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
+![pallet logo](https://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
 
-[Pallet](http://github.com/hugoduncan/pallet) is used
+[Pallet](https://github.com/hugoduncan/pallet) is used
 to provision and maintain compute nodes, and aims to solve the problem of
 providing a consistently configured running image across a range of clouds.  It
 is designed for use from the [Clojure](http://clojure.org) REPL, from clojure
