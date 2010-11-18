@@ -57,8 +57,6 @@
     <module>nagios-config</module>
     <module>nginx</module>
     <module>node-js</module>
-    <module>package-builder</module>
-    <module>package-repository</module>
     <module>php</module>
     <module>postfix</module>
     <module>postgres</module>
@@ -74,7 +72,6 @@
     <module>ssh-key</module>
     <module>sudoers</module>
     <module>syslog-ng</module>
-    <module>thttpd</module>
     <module>tomcat</module>
     <module>upstart</module>
     <module>wordpress</module>
