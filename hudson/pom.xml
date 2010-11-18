@@ -15,5 +15,10 @@
       <artifactId>tomcat</artifactId>
       <version>${pallet.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>maven</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
   </dependencies>
 </project>
