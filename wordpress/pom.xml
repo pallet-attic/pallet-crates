@@ -8,4 +8,17 @@
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>wordpress</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>php</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>mysql</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+  </dependencies>
 </project>
