@@ -153,16 +153,6 @@
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
-              <artifactId>package-builder</artifactId>
-              <version>${pallet.version}</version>
-            </artifactItem>
-            <artifactItem>
-              <groupId>org.cloudhoist</groupId>
-              <artifactId>package-repository</artifactId>
-              <version>${pallet.version}</version>
-            </artifactItem>
-            <artifactItem>
-              <groupId>org.cloudhoist</groupId>
               <artifactId>php</artifactId>
               <version>${pallet.version}</version>
             </artifactItem>
@@ -234,11 +224,6 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>syslog-ng</artifactId>
-              <version>${pallet.version}</version>
-            </artifactItem>
-            <artifactItem>
-              <groupId>org.cloudhoist</groupId>
-              <artifactId>thttpd</artifactId>
               <version>${pallet.version}</version>
             </artifactItem>
             <artifactItem>
