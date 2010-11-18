@@ -8,4 +8,12 @@
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>public-dns-if-no-nameserver</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>resolv</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+  </dependencies>
 </project>
