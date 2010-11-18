@@ -11,9 +11,11 @@ This repository contains the core pallet crates.
 ## Usage
 
 The simplest way to use these crates is to make your project depend on the
-`complete` artifact (or `standalone` if you want a single jar).
+`pallet-crates-complete` artifact (or `pallet-crates-standalone` if you want a
+single jar).
 
-Alternatively you can depend on the individual crates that you use.
+In order to get fine grained dependency control, you can depend on the
+individual crates that you use.
 
 ## Support
 
