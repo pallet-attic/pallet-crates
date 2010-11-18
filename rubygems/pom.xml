@@ -8,4 +8,12 @@
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>rubygems</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>ruby</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+  </dependencies>
 </project>
