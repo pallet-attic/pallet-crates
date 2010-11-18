@@ -1,7 +1,6 @@
 (ns pallet.crate.nagios-test
   (:use pallet.crate.nagios)
   (:require
-   [pallet.crate.nagios-config :as nagios-config]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
    [pallet.request-map :as request-map]
@@ -13,6 +12,19 @@
   (:use clojure.test))
 
 (use-fixtures :once test-utils/with-ubuntu-script-template)
+
+
+;; This is taken from bagios-config to avoid circular dependencies
+(defn service
+  [request {:keys [host_name] :as options}]
+  (parameter/update-for request
+   [:nagios :host-services
+    (keyword (or host_name (nagios-hostname (:target-node request))))]
+   (fn [x]
+     (distinct
+      (conj
+       (or x [])
+       options)))))
 
 (deftest host-service-test
   (testing "config"
@@ -45,7 +57,7 @@
                   :all-nodes [node]
                   :target-nodes [node]
                   :node-type {:image {:os-family :ubuntu}}]
-                 (nagios-config/service
+                 (service
                   {:check_command "check_cmd"
                    :service_description "Service Name"})
                  (hosts))))))))
@@ -77,7 +89,7 @@
                  :target-nodes [node]
                  :node-type {:image {:os-family :ubuntu}}]
                 (unmanaged-host "1.2.3.4" "tag")
-                (nagios-config/service
+                (service
                  {:host_name "tag"
                   :check_command "check_cmd"
                   :service_description "Service Name"})
