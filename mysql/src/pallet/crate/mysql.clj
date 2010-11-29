@@ -1,15 +1,18 @@
 (ns pallet.crate.mysql
   (:require
-   [pallet.resource.package :as package]
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.package :as package]
+   [pallet.resource.service :as service]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
    [clojure.string :as string])
   (:use
    [pallet.resource :only [defresource]]
    [pallet.stevedore :only [script]]
-   [pallet.template :only [deftemplate apply-templates]]))
+   [pallet.template :only [deftemplate apply-templates]]
+   pallet.thread-expr))
 
 (def mysql-my-cnf
      {:yum "/etc/my.cnf"
@@ -22,21 +25,42 @@
    :yum [ "mysql-devel"]
    :aptitude [ "libmysqlclient15-dev" ]))
 
+(defn- mysql-script*
+  "MYSQL script invocation"
+  [username password sql-script]
+  (stevedore/script
+   ("{\n" mysql "-u" ~username ~(str "--password=" password)
+    ~(str "<<EOF\n" (string/replace sql-script "`" "\\`") "\nEOF\n}"))))
+
+(def ^{:private true}
+  sql-create-user "GRANT USAGE ON *.* TO %s IDENTIFIED BY '%s'")
+
 (defn mysql-server
-  ([request root-password] (mysql-server request root-password true))
-  ([request root-password start-on-boot]
-     (->
-      request
-      (package/package-manager
-       :debconf
-       (str "mysql-server-5.1 mysql-server/root_password password " root-password)
-       (str "mysql-server-5.1 mysql-server/root_password_again password " root-password)
-       (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot)
-       (str "mysql-server-5.1 mysql-server-5.1/root_password password " root-password)
-       (str "mysql-server-5.1 mysql-server-5.1/root_password_again password " root-password)
-       (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot))
-      (package/package "mysql-server")
-      (assoc-in [:parameters :mysql :root-password] root-password))))
+  "Install mysql server from packages"
+  [request root-password & {:keys [start-on-boot] :or {start-on-boot true}}]
+  (->
+   request
+   (package/package-manager
+    :debconf
+    (str "mysql-server-5.1 mysql-server/root_password password " root-password)
+    (str "mysql-server-5.1 mysql-server/root_password_again password " root-password)
+    (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot)
+    (str "mysql-server-5.1 mysql-server-5.1/root_password password " root-password)
+    (str "mysql-server-5.1 mysql-server-5.1/root_password_again password " root-password)
+    (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot))
+   (package/package "mysql-server")
+   (when->
+    (= :yum (request-map/packager request))
+    (when->
+     start-on-boot
+     (service/service "mysqld" :action :enable))
+    (service/service "mysqld" :action :start)
+    (exec-script/exec-checked-script
+     "Set Root Password"
+     (chain-or
+      ("/usr/bin/mysqladmin" -u root password (quoted ~root-password))
+      (echo "Root password already set"))))
+   (assoc-in [:parameters :mysql :root-password] root-password)))
 
 (deftemplate my-cnf-template
   [request string]
@@ -56,8 +80,7 @@
   (exec-script/exec-checked-script
    request
    "MYSQL command"
-   ("{\n" mysql "-u" ~username ~(str "--password=" password)
-    ~(str "<<EOF\n" (string/replace sql-script "`" "\\`") "\nEOF\n}"))))
+   ~(mysql-script* username password sql-script)))
 
 (defn create-database
   ([request name]
@@ -79,7 +102,7 @@
      (mysql-script
       request
       username root-password
-      (format "GRANT USAGE ON *.* TO %s IDENTIFIED BY '%s'" user password))))
+      (format sql-create-user user password))))
 
 (defn grant
   ([request privileges level user]
