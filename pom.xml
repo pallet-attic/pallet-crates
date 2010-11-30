@@ -15,9 +15,9 @@
   <description>Pallet Crates</description>
 
   <scm>
-    <connection>scm:git:git://github.com/hugoduncan/pallet-crates.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/hugoduncan/pallet-crates.git</developerConnection>
-    <url>http://github.com/hugoduncan/pallet-crates</url>
+    <connection>scm:git:git://github.com/pallet/pallet-crates.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/pallet/pallet-crates.git</developerConnection>
+    <url>http://github.com/pallet/pallet-crates</url>
   </scm>
 
   <modules>
