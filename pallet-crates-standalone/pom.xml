@@ -256,7 +256,7 @@
         <executions>
           <execution>
             <id>standalone</id>
-            <phase>prepare-package</phase>
+            <phase>test</phase>
             <goals>
               <goal>unpack</goal>
             </goals>
@@ -322,8 +322,6 @@
             <testSourceDirectory>../wordpress/test</testSourceDirectory>
             <testSourceDirectory>../zeromq/test</testSourceDirectory>
             <testSourceDirectory>../zookeeper/test</testSourceDirectory>
-
-
 
           </testSourceDirectories>
 	  <compileDeclaredNamespaceOnly>true</compileDeclaredNamespaceOnly>

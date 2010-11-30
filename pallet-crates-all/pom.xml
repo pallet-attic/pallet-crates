@@ -237,6 +237,11 @@
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
+      <artifactId>tmux</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
       <artifactId>tomcat</artifactId>
       <version>${pallet.version}</version>
     </dependency>
