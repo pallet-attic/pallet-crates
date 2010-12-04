@@ -76,7 +76,7 @@
                                (package/package-source
                                 "Partner"
                                 :aptitude {:url ubuntu-partner-url
-                                           :scopes ["partners"]}))
+                                           :scopes ["partner"]}))
                        (package/package-manager :universe)
                        (package/package-manager :multiverse)
                        (package/package-manager :update))
