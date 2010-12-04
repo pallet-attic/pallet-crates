@@ -38,7 +38,7 @@
            (package/package-source
             "Partner"
             :aptitude {:url ubuntu-partner-url
-                       :scopes ["partners"]})
+                       :scopes ["partner"]})
            (pkg-config)
            (debconf "sun-java6-bin")
            (package/package "sun-java6-bin")
@@ -56,7 +56,7 @@
            (package/package-source
             "Partner"
             :aptitude {:url ubuntu-partner-url
-                       :scopes ["partners"]})
+                       :scopes ["partner"]})
            (pkg-config)
            (debconf "sun-java6-bin")
            (package/package "sun-java6-bin")
