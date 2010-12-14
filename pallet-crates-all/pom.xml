@@ -152,11 +152,6 @@
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
-      <artifactId>package-repository</artifactId>
-      <version>${pallet.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.cloudhoist</groupId>
       <artifactId>php</artifactId>
       <version>${pallet.version}</version>
     </dependency>
@@ -228,11 +223,6 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>syslog-ng</artifactId>
-      <version>${pallet.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.cloudhoist</groupId>
-      <artifactId>thttpd</artifactId>
       <version>${pallet.version}</version>
     </dependency>
     <dependency>

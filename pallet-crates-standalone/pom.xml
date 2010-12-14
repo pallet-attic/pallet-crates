@@ -153,6 +153,11 @@
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
+              <artifactId>package-builder</artifactId>
+              <version>${pallet.version}</version>
+            </artifactItem>
+            <artifactItem>
+              <groupId>org.cloudhoist</groupId>
               <artifactId>php</artifactId>
               <version>${pallet.version}</version>
             </artifactItem>
@@ -300,7 +305,6 @@
             <testSourceDirectory>../nginx/test</testSourceDirectory>
             <testSourceDirectory>../node-js/test</testSourceDirectory>
             <testSourceDirectory>../package-builder/test</testSourceDirectory>
-            <testSourceDirectory>../package-repository/test</testSourceDirectory>
             <testSourceDirectory>../php/test</testSourceDirectory>
             <testSourceDirectory>../postfix/test</testSourceDirectory>
             <testSourceDirectory>../postgres/test</testSourceDirectory>
@@ -316,7 +320,6 @@
             <testSourceDirectory>../ssh-key/test</testSourceDirectory>
             <testSourceDirectory>../sudoers/test</testSourceDirectory>
             <testSourceDirectory>../syslog-ng/test</testSourceDirectory>
-            <testSourceDirectory>../thttpd/test</testSourceDirectory>
             <testSourceDirectory>../tomcat/test</testSourceDirectory>
             <testSourceDirectory>../upstart/test</testSourceDirectory>
             <testSourceDirectory>../wordpress/test</testSourceDirectory>

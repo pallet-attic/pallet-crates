@@ -57,6 +57,7 @@
     <module>nagios-config</module>
     <module>nginx</module>
     <module>node-js</module>
+    <module>package-builder</module>
     <module>php</module>
     <module>postfix</module>
     <module>postgres</module>
