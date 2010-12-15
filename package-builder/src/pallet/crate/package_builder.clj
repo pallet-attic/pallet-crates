@@ -53,7 +53,9 @@
      (package/package "redhat-rpm-config")
      (package/package "mock")
      (user/user build-user :create-home true :groups "mock" )
-     (directory/directories (rpmbuild-dirs base-dir))
+     (directory/directories
+      (rpmbuild-dirs base-dir)
+      :owner build-user)
      (remote-file/remote-file
       (str "$HOME/.rpmmacros") ;; looked up by real user id
       :content (format
@@ -113,10 +115,16 @@
    (parameter/get-for-target request [:package-builder :base-dir]) "/SRPMS/"))
 
 (defn spec-path
-  "Helper to return source path for a package."
+  "Helper to return rpm path for a package."
   [request]
   (str
    (parameter/get-for-target request [:package-builder :base-dir]) "/SPECS/"))
+
+(defn rpm-path
+  "Helper to return rpm path for a package."
+  [request]
+  (str
+   (parameter/get-for-target request [:package-builder :base-dir]) "/RPMS/"))
 
 (defn build-user
   "Helper to return the user for building packages."
@@ -143,15 +151,16 @@
 
 (defn rpm-rebuild
   "Rebuild an rpm package based on a source package."
-  [request src-rpm & {:keys [target] :or {target "default"}}]
+  [request src-rpm & {:keys [target resultdir] :or {target "default"}}]
   (let [user (parameter/get-for-target request [:package-builder :build-user])]
     (->
      request
      (exec-script/exec-checked-script
       (format "rpm rebuild %s" src-rpm)
-      ;; (mock clean)
-      ;; (sudo -u ~user mock "--no-clean" install-deps ~src-rpm)
-      (sudo -u ~user "/usr/bin/mock" -r ~target rebuild ~src-rpm)))))
+      (sudo -u ~user "/usr/bin/mock"
+            -r ~target
+            --resultdir (or resultdir ~(rpm-path request))
+            --rebuild ~src-rpm)))))
 
 ;; TODO - improve or remove this
 (defn specfile
