@@ -147,7 +147,7 @@
     (exec-script/exec-checked-script request
      (format "rpmbuild source package %s" path)
      (cd @(dirname ~path))
-     (rpmbuild "-bs" @(basename ~path)))))
+     (rpmbuild -bs --nodeps @(basename ~path)))))
 
 (defn rpm-rebuild
   "Rebuild an rpm package based on a source package."
