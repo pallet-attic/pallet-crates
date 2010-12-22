@@ -159,7 +159,7 @@
       (format "rpm rebuild %s" src-rpm)
       (sudo -u ~user "/usr/bin/mock"
             -r ~target
-            --resultdir (or resultdir ~(rpm-path request))
+            --resultdir ~(or resultdir (rpm-path request))
             --rebuild ~src-rpm)))))
 
 ;; TODO - improve or remove this
