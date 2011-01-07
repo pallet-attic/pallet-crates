@@ -1,5 +1,17 @@
 (ns pallet.crate.tomcat
-  "Installation of tomcat"
+  "Crate to install and configure tomcat.
+
+   Installation sets the following host paramters:
+     - [:tomcat :base] base of the tomcat installation
+     - [:tomcat :config-path] path to the configuration files
+     - [:tomcat :owner] user that owns and runs tomcat
+     - [:tomcat :group] group for tomcat files
+     - [:tomcat :service] the name of the package installed
+
+   Configuration is via `server-configuration`, passing a server configuration
+   generated with a call to `server`.
+
+   The tomcat service may be controlled via `init-service`."
   (:refer-clojure :exclude [alias])
   (:use
    [pallet.stevedore :only [script]]
@@ -23,22 +35,40 @@
    [net.cgrand.enlive-html :as enlive]
    [clojure.contrib.string :as string]))
 
-(def tomcat-config-root "/etc/")
-(def tomcat-base "/var/lib/")
+(def dummy-for-marginalia)
 
-(def package-name
+(def
+  ^{:doc "Baseline configuration file path" :private true}
+  tomcat-config-root "/etc/")
+(def
+  ^{:doc "Baseline install path" :private true}
+  tomcat-base "/var/lib/")
+
+(def
+  ^{:doc "package names for specific versions" :private true}
+  version-package
+  {6 "tomcat6"
+   5 "tomcat5"})
+
+(def
+  ^{:doc "default package name for each packager" :private true}
+  package-name
   {:aptitude "tomcat6"
    :pacman "tomcat"
    :yum "tomcat5"
    :amzn-linux "tomcat6"})
 
-(def tomcat-user-group-name
+(def
+ ^{:doc "default user and group name for each packager" :private true}
+  tomcat-user-group-name
   {:aptitude "tomcat6"
    :pacman "tomcat"
    :yum "tomcat"})
 
+
+
 (defn tomcat
-  "Install tomcat"
+  "Install tomcat from the standard package sources."
   [request & {:keys [user group] :as options}]
   (let [package (or
                  (package-name (request-map/os-family request))
@@ -60,6 +90,9 @@
                  tomcat-base :action :delete :recursive true :force true)))))
 
 (defn init-service
+  "Control the tomcat service.
+   Arguments are as for `pallet.resource.service/service`, except the service
+   name is looked up in the request parameters."
   [request & args]
   (->
    request
@@ -124,7 +157,9 @@
      (when-> (:clear-existing opts)
              (directory/directory exploded-app-dir :action :delete)))))
 
-(defn output-grants [[code-base permissions]]
+(defn- output-grants
+  "Return a string containing `grant` statements for a tomcat policy file."
+  [[code-base permissions]]
   (let [code-base (when code-base
                     (format "codeBase \"%s\"" code-base))]
   (format
@@ -404,10 +439,13 @@
 
 (defn listener
   "Define a tomcat listener. listener-type is a classname or a key from
-   listener-classnames. Options are listener-type specific, and match
-   the attributes in the tomcat docs.
+   `listener-classnames`.
+
+   Options are listener-type specific, and match the attributes in the tomcat
+   docs.
+
    For example, to configure the APR SSL support:
-     (listener :apr-lifecycle :SSLEngine \"on\" :SSLRandomSeed \"builtin\")"
+       (listener :apr-lifecycle :SSLEngine \"on\" :SSLRandomSeed \"builtin\")"
   [listener-type & options]
   (pallet-type ::listener
                :className (classname-for listener-type listener-classnames)
@@ -423,7 +461,9 @@
                options))
 
 (defn environment
-  "Define tomcat environment variable."
+  "Define tomcat environment variable.
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/context.html#Environment_Entries"
   ([name value type]
      (pallet-type ::environment
                   [:name name :value value :type (.getName type)]))
@@ -435,7 +475,10 @@
 (defn resource
   "Define tomcat JNDI resource.
    resource-type is a classname, or on of :sql-datasource.
-   Options include:"
+   Options include:
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/resources.html
+   "
   [name resource-type & options]
   (pallet-type ::resource
                :name name
@@ -448,7 +491,15 @@
   (pallet-type ::transaction [:factory factory-classname]))
 
 (defn service
-  "Define a tomcat service"
+  "Define a tomcat service.
+   Requires an engine and connectors.
+
+       (service (engine ) (connector)
+
+   Options are implementation specific, and includes:
+    - :className
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/service.html"
   [& options]
   (pallet-type ::service :members [::engine] :collections [::connector] options))
 
@@ -497,8 +548,16 @@
            options)))
 
 (defn engine
-  "Define a tomcat engine. Options are:
-     valves, realm, hosts"
+  "Define a tomcat engine.
+
+   Accepts a realm, valves, and hosts.
+
+   Options are specified in the tomcat docs, and include:
+    - :className
+    - :backgroundProcessorDelay
+    - :jvmRoute
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/engine.html"
   [name default-host & options]
   (pallet-type
    ::engine :members [::realm] :collections [::valve ::host]
@@ -506,20 +565,37 @@
 
 ;; TODO : Create specialised constructors for each realm
 (defn realm
-  "Define a tomcat realm."
+  "Define a tomcat realm.
+
+   Options are specified in the tomcat docs, and realm-type specific.
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/realm.html"
   [realm-type & options]
   (pallet-type
    ::realm :className (classname-for realm-type realm-classnames) options))
 
 (defn valve
-  "Define a tomcat valve."
+  "Define a tomcat valve.
+
+   Options are specified in the tomcat docs, and valve-type specific.
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/valve.html"
   [valve-type & options]
   (pallet-type
    ::valve :className (classname-for valve-type valve-classnames) options))
 
 (defn host
-  "Define a tomcat host. Options include:
-     valves, contexts, aliases and listeners"
+  "Define a tomcat host.
+
+   Accepts valves, contexts, aliases and listeners.
+
+   Options are implementation specific, and include:
+    - :autoDeploy
+    - :backgroundProcessorDelay
+    - :className
+    - :deployOnStartup
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/host.html"
   [name app-base & options]
   (pallet-type
    ::host :collections [::valve ::context ::alias ::listener]
@@ -531,9 +607,28 @@
   (pallet-type ::alias [:name name]))
 
 (defn context
-  "Define a tomcat context. Options include: valves, listeners, loader, manager
-   realm, resources, resource-links, parameters, environments, transactions
-   watched-resources"
+  "Define a tomcat context.
+
+   Accepts: loader, manager realm, valves, listeners, resources, resource-links,
+   parameters, environments, transactions and watched-resources
+
+   Options are implemenation specific, and include:
+    - :backgroundProcessorDelay
+    - :className
+    - :cookies
+    - :crossContext
+    - :docBase
+    - :override
+    - :privileged
+    - :path
+    - :reloadable
+    - :sessionCookieDomain
+    - :sessionCookieName
+    - :sessionCookiePath
+    - :wrapperClass
+    - :useHttpOnly
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/context.html"
   [name & options]
   (pallet-type
    ::context
@@ -543,12 +638,25 @@
    options))
 
 (defn loader
-  "Define a tomcat class loader."
+  "Define a tomcat class loader.
+
+   Options are implementation specific, and include:
+    - :className
+    - :delegate
+    - :reloadable
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/loader.html"
   [classname options]
   (pallet-type ::loader :className classname options))
 
 (defn parameter
-  "Define a tomcat parameter. Options are :description and :override."
+  "Define a tomcat parameter.
+
+   Options are:
+     - :description
+     - :override
+
+   http://tomcat.apache.org/tomcat-6.0-doc/config/context.html#Context_Parameters"
   [name value & options]
   (pallet-type ::parameters :name name :value value options))
 
@@ -559,9 +667,18 @@
 
 (defn server
   "Define a tomcat server. Accepts server, listener and a global-resources
-  form. eg.
-     (server :port \"123\" :shutdown \"SHUTDOWNx\"
-       (global-resources)
+   form.
+
+     - ::services         vector of services
+     - ::global-resources vector of resources.
+
+   Options include:
+     - :class-name       imlementation class name - org.apache.catalina.Server
+     - :port             shutdown listen port - 8005
+     - :shutdown         shutdown command string - SHUTDOWN
+
+       (server :port \"123\" :shutdown \"SHUTDOWNx\"
+         (global-resources)
          (service
            (engine \"catalina\" \"host\"
              (valve :request-dumper))
@@ -576,17 +693,7 @@
 
 (defn server-configuration
   "Define a tomcat server.  When a key is not specified, the relevant section
-   of the template is output, unmodified.
-   Options include:
-     :class-name       imlementation class - org.apache.catalina.Server
-     :port             shutdown listen port - 8005
-     :shutdown         shutdown command string - SHUTDOWN
-     ::listeners       vector of listeners, each described as an attribute/value
-                       map. The listener can be specified using the ::listener
-                       key and one of the listener-classname values, or as
-                       a :className key.
-     ::services         vector of services
-     ::global-resources vector of resources."
+   of the template is output, unmodified."
   [request server]
   (let [base (parameter/get-for-target request [:tomcat :base])]
     (->
