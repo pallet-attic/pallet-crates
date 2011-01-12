@@ -3,6 +3,7 @@
   (:require
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.resource.file :as file]
    [pallet.stevedore :as stevedore]
    [pallet.target :as target])
@@ -38,7 +39,9 @@
               "/etc/sysconfig/iptables"
               :content
               "*filter\n:INPUT ACCEPT\n:FORWARD ACCEPT\n:OUTPUT ACCEPT\n:FWR -\n-A INPUT -j FWR\n-A FWR -i lo -j ACCEPT\n\n# Rejects all remaining connections with port-unreachable errors.\n-A FWR -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j REJECT --reject-with icmp-port-unreachable\n-A FWR -p udp -j REJECT --reject-with icmp-port-unreachable\nCOMMIT\n"
-              :mode "0755")))
+              :mode "0755")
+             (exec-script/exec-script
+              ("/sbin/iptables-restore" < "/etc/sysconfig/iptables"))))
            (first
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]

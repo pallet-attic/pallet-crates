@@ -68,11 +68,14 @@ iptables configuration line (cf. arguments to an iptables invocation)"
      (case packager
        :aptitude (stevedore/do-script*
                   (map #(restore-iptables request %) tables))
-       :yum (pallet.resource.remote-file/remote-file*
-             request
-             "/etc/sysconfig/iptables"
-             :mode "0755"
-             :content (format-iptables tables))))))
+       :yum (stevedore/do-script
+             (pallet.resource.remote-file/remote-file*
+              request
+              "/etc/sysconfig/iptables"
+              :mode "0755"
+              :content (format-iptables tables))
+             (stevedore/script
+              ("/sbin/iptables-restore" < "/etc/sysconfig/iptables")))))))
 
 (defn iptables-accept-established
   "Accept established connections"
