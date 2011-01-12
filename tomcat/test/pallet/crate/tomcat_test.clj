@@ -325,6 +325,8 @@
   (is (build-resources
        [:blobstore (blobstore/service "url-blobstore")]
        (tomcat)
+       (tomcat :version 6)
+       (tomcat :version "tomcat-6-1.2")
        (undeploy "app")
        (undeploy-all)
        (deploy "app" :content "")

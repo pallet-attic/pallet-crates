@@ -68,13 +68,23 @@
 
 
 (defn tomcat
-  "Install tomcat from the standard package sources."
-  [request & {:keys [user group] :as options}]
+  "Install tomcat from the standard package sources.
+
+   Options:
+    - :user     override the tomcat user
+    - :group    override the tomcat group
+    - :version  specify the tomcat version (5, 6, or arbitrary string)"
+  [request & {:keys [user group version] :as options}]
   (let [package (or
+                 (version-package version version)
                  (package-name (request-map/os-family request))
                  (package-name (:target-packager request)))
         tomcat-user (tomcat-user-group-name (:target-packager request))]
     (-> request
+        (when->
+         (and (= :centos (request-map/os-family request))
+              (= "5.3" (request-map/os-version request)))
+         (package/add-jpackage :releasever "5.0"))
         (when-> (= :install (:action options :install))
                 (parameter/assoc-for-target
                  [:tomcat :base] (str tomcat-base package "/")
