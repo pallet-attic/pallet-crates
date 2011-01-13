@@ -34,7 +34,7 @@
             "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "0775")
            (remote-file/remote-file
             "/var/lib/hudson/hudson.war"
-            :url "http://hudson-ci.org/latest/hudson.war"
+            :url (str hudson-download-base-url "latest/hudson.war")
             :md5 nil)
            (tomcat/policy
             99 "hudson"

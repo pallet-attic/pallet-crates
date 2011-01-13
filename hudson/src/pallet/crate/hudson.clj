@@ -38,10 +38,14 @@
   "Get the actual filename corresponding to a template."
   [base] (str "crate/hudson/" base))
 
+(def hudson-download-base-url
+  "http://mirrors.hudson-labs.org/war/")
+
 (defn hudson-url
+  "Calculate the url for the specified version"
   [version]
   (if (= version :latest)
-    "http://hudson-ci.org/latest/hudson.war"
+    (str hudson-download-base-url "latest/hudson.war")
     (str "http://hudson-ci.org/download/war/" version "/hudson.war")))
 
 (def hudson-md5
