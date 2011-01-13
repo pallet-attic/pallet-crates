@@ -24,7 +24,7 @@
              "/opt/cruisecontrolrb/cruise"
              add name
              --repository "git://host/repo.git"
-             --source-control "git ")))
+             --source-control "git")))
          (first
           (build-resources
            [] (cruise-control-rb-job "name" "git://host/repo.git"))))))
