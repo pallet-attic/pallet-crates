@@ -237,6 +237,11 @@
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
+      <artifactId>vpnc</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
       <artifactId>wordpress</artifactId>
       <version>${pallet.version}</version>
     </dependency>

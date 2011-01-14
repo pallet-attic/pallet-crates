@@ -75,6 +75,7 @@
     <module>syslog-ng</module>
     <module>tomcat</module>
     <module>upstart</module>
+    <module>vpnc</module>
     <module>wordpress</module>
     <module>zeromq</module>
     <module>zookeeper</module>

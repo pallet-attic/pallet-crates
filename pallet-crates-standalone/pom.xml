@@ -243,6 +243,11 @@
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
+              <artifactId>vpnc</artifactId>
+              <version>${pallet.version}</version>
+            </artifactItem>
+            <artifactItem>
+              <groupId>org.cloudhoist</groupId>
               <artifactId>wordpress</artifactId>
               <version>${pallet.version}</version>
             </artifactItem>
@@ -322,6 +327,7 @@
             <testSourceDirectory>../syslog-ng/test</testSourceDirectory>
             <testSourceDirectory>../tomcat/test</testSourceDirectory>
             <testSourceDirectory>../upstart/test</testSourceDirectory>
+            <testSourceDirectory>../vpnc/test</testSourceDirectory>
             <testSourceDirectory>../wordpress/test</testSourceDirectory>
             <testSourceDirectory>../zeromq/test</testSourceDirectory>
             <testSourceDirectory>../zookeeper/test</testSourceDirectory>
