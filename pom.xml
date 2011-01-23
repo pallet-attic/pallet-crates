@@ -81,7 +81,6 @@
         <module>ssh-key</module>
         <module>sudoers</module>
         <module>syslog-ng</module>
-        <module>tmux</module>
         <module>tomcat</module>
         <module>upstart</module>
         <module>vpnc</module>
@@ -169,7 +168,6 @@
               <param>ssh-key/src</param>
               <param>sudoers/src</param>
               <param>syslog-ng/src</param>
-              <param>tmux/src</param>
               <param>tomcat/src</param>
               <param>upstart/src</param>
               <param>vpnc/src</param>
