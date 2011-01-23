@@ -20,66 +20,87 @@
     <url>http://github.com/pallet/pallet-crates</url>
   </scm>
 
-  <modules>
-    <!-- The parent module defines common configuration for all modules. -->
-    <module>pallet-crate-pom</module>
+  <!-- to build marginalia output,
+         mvn clojure:marginalia -P marginalia,\!default -->
+  <profiles>
+    <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <!-- The parent module defines common configuration for all modules. -->
+        <module>pallet-crate-pom</module>
 
-    <!-- The complete module depends on all other modules. -->
-    <module>pallet-crates-all</module>
+        <!-- The complete module depends on all other modules. -->
+        <module>pallet-crates-all</module>
 
-    <!-- The standalone module packages all other modules. -->
-    <module>pallet-crates-standalone</module>
+        <!-- The standalone module packages all other modules. -->
+        <module>pallet-crates-standalone</module>
 
-    <module>automated-admin-user</module>
-    <module>bzr</module>
-    <module>cassandra</module>
-    <module>chef</module>
-    <module>cloudkick</module>
-    <module>couchdb</module>
-    <module>crontab</module>
-    <module>cruise-control-rb</module>
-    <module>etc-default</module>
-    <module>etc-hosts</module>
-    <module>ganglia</module>
-    <module>git</module>
-    <module>github</module>
-    <module>gpg</module>
-    <module>haproxy</module>
-    <module>hudson</module>
-    <module>iozone</module>
-    <module>iptables</module>
-    <module>java</module>
-    <module>jetty</module>
-    <module>maven</module>
-    <module>monit</module>
-    <module>mysql</module>
-    <module>nagios</module>
-    <module>nagios-config</module>
-    <module>nginx</module>
-    <module>node-js</module>
-    <module>package-builder</module>
-    <module>php</module>
-    <module>postfix</module>
-    <module>postgres</module>
-    <module>public-dns-if-no-nameserver</module>
-    <module>rabbitmq</module>
-    <module>resolv</module>
-    <module>ruby</module>
-    <module>rubygems</module>
-    <module>sphinx</module>
-    <module>splunk</module>
-    <module>squeak</module>
-    <module>ssh</module>
-    <module>ssh-key</module>
-    <module>sudoers</module>
-    <module>syslog-ng</module>
-    <module>tomcat</module>
-    <module>upstart</module>
-    <module>vpnc</module>
-    <module>wordpress</module>
-    <module>zeromq</module>
-    <module>zookeeper</module>
-  </modules>
+        <module>automated-admin-user</module>
+        <module>bzr</module>
+        <module>cassandra</module>
+        <module>chef</module>
+        <module>cloudkick</module>
+        <module>couchdb</module>
+        <module>crontab</module>
+        <module>cruise-control-rb</module>
+        <module>etc-default</module>
+        <module>etc-hosts</module>
+        <module>ganglia</module>
+        <module>git</module>
+        <module>github</module>
+        <module>gpg</module>
+        <module>haproxy</module>
+        <module>hudson</module>
+        <module>iozone</module>
+        <module>iptables</module>
+        <module>java</module>
+        <module>jetty</module>
+        <module>maven</module>
+        <module>monit</module>
+        <module>mysql</module>
+        <module>nagios</module>
+        <module>nagios-config</module>
+        <module>nginx</module>
+        <module>node-js</module>
+        <module>package-builder</module>
+        <module>php</module>
+        <module>postfix</module>
+        <module>postgres</module>
+        <module>public-dns-if-no-nameserver</module>
+        <module>rabbitmq</module>
+        <module>resolv</module>
+        <module>ruby</module>
+        <module>rubygems</module>
+        <module>sphinx</module>
+        <module>splunk</module>
+        <module>squeak</module>
+        <module>ssh</module>
+        <module>ssh-key</module>
+        <module>sudoers</module>
+        <module>syslog-ng</module>
+        <module>tmux</module>
+        <module>tomcat</module>
+        <module>upstart</module>
+        <module>vpnc</module>
+        <module>wordpress</module>
+        <module>zeromq</module>
+        <module>zookeeper</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>marginalia</id>
+      <activation>
+        <property>
+          <name>project.goal</name>
+          <value>clojure:marginalia</value>
+        </property>
+      </activation>
+      <modules></modules>
+    </profile>
+  </profiles>
 
   <build>
     <plugins>
@@ -100,10 +121,72 @@
           </descriptors>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>com.theoryinpractise</groupId>
+        <artifactId>clojure-maven-plugin</artifactId>
+        <configuration>
+            <marginaliaSourceDirectories>
+              <param>automated-admin-user/src</param>
+              <param>bzr/src</param>
+              <param>cassandra/src</param>
+              <param>chef/src</param>
+              <param>cloudkick/src</param>
+              <param>couchdb/src</param>
+              <param>crontab/src</param>
+              <param>cruise-control-rb/src</param>
+              <param>etc-default/src</param>
+              <param>etc-hosts/src</param>
+              <param>ganglia/src</param>
+              <param>git/src</param>
+              <param>github/src</param>
+              <param>gpg/src</param>
+              <param>haproxy/src</param>
+              <param>hudson/src</param>
+              <param>iozone/src</param>
+              <param>iptables/src</param>
+              <param>java/src</param>
+              <param>jetty/src</param>
+              <param>maven/src</param>
+              <param>monit/src</param>
+              <param>mysql/src</param>
+              <param>nagios/src</param>
+              <param>nagios-config/src</param>
+              <param>nginx/src</param>
+              <param>node-js/src</param>
+              <param>package-builder/src</param>
+              <param>php/src</param>
+              <param>postfix/src</param>
+              <param>postgres/src</param>
+              <param>public-dns-if-no-nameserver/src</param>
+              <param>rabbitmq/src</param>
+              <param>resolv/src</param>
+              <param>ruby/src</param>
+              <param>rubygems/src</param>
+              <param>sphinx/src</param>
+              <param>splunk/src</param>
+              <param>squeak/src</param>
+              <param>ssh/src</param>
+              <param>ssh-key/src</param>
+              <param>sudoers/src</param>
+              <param>syslog-ng/src</param>
+              <param>tmux/src</param>
+              <param>tomcat/src</param>
+              <param>upstart/src</param>
+              <param>vpnc/src</param>
+              <param>wordpress/src</param>
+              <param>zeromq/src</param>
+              <param>zookeeper/src</param>
+            </marginaliaSourceDirectories>
+          <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>marginalia</groupId>
+      <artifactId>marginalia</artifactId>
+    </dependency>
+  </dependencies>
 </project>

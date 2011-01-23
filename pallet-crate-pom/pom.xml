@@ -21,6 +21,41 @@
     <url>http://github.com/pallet/pallet-crates</url>
   </scm>
 
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.theoryinpractise</groupId>
+          <artifactId>clojure-maven-plugin</artifactId>
+          <configuration>
+          </configuration>
+          <executions>
+            <execution>
+              <id>compile-clojure</id>
+              <phase>compile</phase>
+              <goals>
+                <goal>compile</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>test-clojure</id>
+              <phase>test</phase>
+              <goals>
+                <goal>test</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>marginalia</id>
+              <configuration>
+                <skip>true</skip>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
   <dependencies>
     <dependency>
       <groupId>org.cloudhoist</groupId>
@@ -34,58 +69,20 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>marginalia</groupId>
+      <artifactId>marginalia</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>autodoc</groupId>
+      <artifactId>autodoc</artifactId>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>sonatype-snapshots</id>
-      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
-    <repository>
-      <id>sonatype</id>
-      <url>http://oss.sonatype.org/content/repositories/releases</url>
-    </repository>
-    <repository>
-      <id>clojure</id>
-      <url>http://build.clojure.org/releases</url>
-    </repository>
-    <repository>
-      <id>clojure-snapshots</id>
-      <url>http://build.clojure.org/snapshots</url>
-    </repository>
-    <repository>
-      <id>clojars</id>
-      <url>http://clojars.org/repo</url>
-    </repository>
-  </repositories>
-
-  <developers>
-    <developer>
-      <name>Hugo Duncan</name>
-      <id>hugoduncan</id>
-      <email>hugo -at- hugoduncan -dot- org</email>
-      <roles>
-        <role>PMC</role>
-        <role>Developer</role>
-      </roles>
-      <timezone>-5</timezone>
-    </developer>
-    <developer>
-      <name>Adrian Cole</name>
-      <id>ferncam1</id>
-      <email>adrian -at- jclouds -dot- org</email>
-      <organization>jclouds</organization>
-      <roles>
-        <role>Developer</role>
-      </roles>
-      <url>http://www.jclouds.org</url>
-      <timezone>-8</timezone>
-    </developer>
-  </developers>
 
   <properties>
     <pallet.version>0.4.0-SNAPSHOT</pallet.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
 </project>
