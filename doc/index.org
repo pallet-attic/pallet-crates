@@ -1,0 +1,9 @@
+#+SETUPFILE: org-templates/level-0.org
+#+TITLE:     Pallet Crates
+#+DESCRIPTION: Pallet crates encapsulate configuration.
+#+KEYWORDS:
+
+Pallet crates are available to install, configure and operate many software
+components.
+
+- [[http://pallet.github.com/pallet-crates/marginalia/uberdoc.html][Annotated Source]]
