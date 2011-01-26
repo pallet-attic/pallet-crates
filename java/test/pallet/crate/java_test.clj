@@ -1,11 +1,14 @@
 (ns pallet.crate.java-test
   (:use pallet.crate.java)
   (:require
+   [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.core :as core]
+   [pallet.live-test :as live-test]
    [pallet.resource :as resource]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.resource.package :as package]
-   [pallet.stevedore :as stevedore]
    [pallet.script :as script]
+   [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.template :as template]
    [pallet.utils :as utils])
@@ -92,3 +95,20 @@
     []
     (java :openjdk :jdk)
     (jce-policy-file "f" :content ""))))
+
+(deftest live-test
+  (doseq [image [{:os-family :ubuntu :os-version-matches "10.04"}
+                 {:os-family :ubuntu :os-version-matches "10.10"}]]
+    (live-test/test-nodes
+     [compute node-map node-types]
+     {:java
+      {:image image
+       :count 1
+       :phases {:bootstrap (resource/phase
+                            (automated-admin-user/automated-admin-user))
+                :configure (resource/phase (java :sun))
+                :verify (resource/phase
+                         (exec-script/exec-checked-script
+                          "check java installed"
+                          (java -version)))}}}
+     (core/lift (:java node-types) :phase :verify :compute compute))))

@@ -1,5 +1,7 @@
 (ns pallet.crate.java
-  "Crates for java installation and configuration"
+  "Crates for java installation and configuration.
+
+   Sun Java installation on centos requires use of oracle rpm's."
   (:require
    [pallet.request-map :as request-map]
    [pallet.resource :as resource]
@@ -17,7 +19,7 @@
       :sun "sun-java6-"})
 
 (def yum-package-names
-     {:openjdk "java"})
+  {:openjdk "java"})
 
 (def pacman-package-names
   {:openjdk "openjdk6"})
