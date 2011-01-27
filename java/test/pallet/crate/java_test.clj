@@ -98,7 +98,8 @@
 
 (deftest live-test
   (doseq [image [{:os-family :ubuntu :os-version-matches "10.04"}
-                 {:os-family :ubuntu :os-version-matches "10.10"}]]
+                 {:os-family :ubuntu :os-version-matches "10.10"}
+                 {:os-family :debian :os-version-matches "5.0.7"}]]
     (live-test/test-nodes
      [compute node-map node-types]
      {:java

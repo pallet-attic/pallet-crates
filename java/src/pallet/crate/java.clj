@@ -1,7 +1,7 @@
 (ns pallet.crate.java
   "Crates for java installation and configuration.
 
-   Sun Java installation on centos requires use of oracle rpm's."
+   Sun Java installation on CentOS requires use of Oracle rpm's."
   (:require
    [pallet.request-map :as request-map]
    [pallet.resource :as resource]
@@ -15,8 +15,8 @@
 (def vendor-keywords #{:openjdk :sun})
 
 (def deb-package-names
-     {:openjdk "openjdk-6-"
-      :sun "sun-java6-"})
+  {:openjdk "openjdk-6-"
+   :sun "sun-java6-"})
 
 (def yum-package-names
   {:openjdk "java"})
@@ -78,10 +78,14 @@
                                (package/package-source
                                 "Partner"
                                 :aptitude {:url ubuntu-partner-url
-                                           :scopes ["partner"]}))
-                       (package/package-manager :universe)
-                       (package/package-manager :multiverse)
-                       (package/package-manager :update))
+                                           :scopes ["partner"]})
+                               (package/package-manager :universe)
+                               (package/package-manager :multiverse)
+                               (package/package-manager :update))
+                       (when-> (= os-family :debian)
+                               (package/package-manager
+                                :add-scope :scope :non-free)
+                               (package/package-manager :update)))
                (when-> (= packager :yum)
                        (package/package "jpackage-utils")))
        (for-> [vendor vendors]
