@@ -70,6 +70,9 @@
 (defn tomcat
   "Install tomcat from the standard package sources.
 
+   On older centos versions, jpackge will be used to obtain tomcat 6 if
+   version 6 is explicitly requested.
+
    Options:
     - :user     override the tomcat user
     - :group    override the tomcat group
@@ -677,7 +680,8 @@
 
 (defn server
   "Define a tomcat server. Accepts server, listener and a global-resources
-   form.
+   form. The result of this function can be installed using
+   `server-configuration`.
 
      - ::services         vector of services
      - ::global-resources vector of resources.
@@ -695,6 +699,7 @@
              (connector :port \"8080\" :protocol \"HTTP/1.1\"
                 :connectionTimeout \"20000\" :redirectPort \"8443\")))"
   [& options]
+  {:pre [(not (map? (first options)))]} ; check not called as a crate function
   (pallet-type
    ::server
    :members [::global-resources]
@@ -702,8 +707,12 @@
    options))
 
 (defn server-configuration
-  "Define a tomcat server.  When a key is not specified, the relevant section
-   of the template is output, unmodified."
+  "Install a tomcat server configuration.
+
+   The `server` argument can be generated with `pallet.crate.tomcat/server`.
+
+   When a tomcat configuration element is not specified, the relevant section of
+   the template is output, unmodified."
   [request server]
   (let [base (parameter/get-for-target request [:tomcat :base])]
     (->
