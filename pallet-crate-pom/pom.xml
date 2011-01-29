@@ -104,7 +104,7 @@
             <groupId>com.theoryinpractise</groupId>
             <artifactId>clojure-maven-plugin</artifactId>
             <configuration>
-              <clojureOptions>-Dpallet.test.live=true -Dpallet.test.service-name=${pallet.test.service-name}</clojureOptions>
+              <clojureOptions>-Dpallet.test.live=true -Dpallet.test.service-name=${pallet.test.service-name} -Dpallet.test.cleanup-nodes=${pallet.test.cleanup-nodes}</clojureOptions>
             </configuration>
           </plugin>
         </plugins>
