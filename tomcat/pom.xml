@@ -8,4 +8,14 @@
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>tomcat</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>automated-admin-user</artifactId>
+      <version>${pallet.version}</version>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

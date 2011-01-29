@@ -2,15 +2,20 @@
   (:refer-clojure :exclude [alias])
   (:use pallet.crate.tomcat)
   (:require
+    [pallet.core :as core]
     [pallet.crate.tomcat :as tc]
+    [pallet.crate.automated-admin-user :as automated-admin-user]
+    [pallet.live-test :as live-test]
     [pallet.target :as target]
     [pallet.resource :as resource]
     [pallet.resource.directory :as directory]
+    [pallet.resource.exec-script :as exec-script]
     [pallet.resource.file :as file]
     [pallet.resource.remote-file :as remote-file]
     [pallet.resource.package :as package]
     [pallet.parameter :as parameter]
     [pallet.template :as template]
+    [pallet.thread-expr :as thread-expr]
     [pallet.stevedore :as stevedore]
     [net.cgrand.enlive-html :as enlive-html]
     [pallet.enlive :as enlive]
@@ -26,15 +31,16 @@
 
 (use-fixtures :once with-ubuntu-script-template)
 
-(deftest tomcat-test
+(deftest install-test
   (is (= (first
           (build-resources
            []
+           (package/package-manager :update)
            (package/package "tomcat6")))
          (first
           (build-resources
            []
-           (tomcat)
+           (install)
            (parameter-test/parameters-test
             [:host :id :tomcat :base] "/var/lib/tomcat6/"))))))
 
@@ -91,6 +97,7 @@
            (remote-file/remote-file
             "/p/policy.d/100hudson.policy"
             :content "grant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};"
+            :flag-on-changed tomcat-config-changed-flag
             :literal true)))
          (first
           (build-resources
@@ -108,6 +115,7 @@
            (remote-file/remote-file
             "/p/policy.d/100hudson.policy"
             :content "grant  {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};"
+            :flag-on-changed tomcat-config-changed-flag
             :literal true)))
          (first
           (build-resources
@@ -117,11 +125,15 @@
             {nil ["permission java.lang.RuntimePermission \"getAttribute\""]}))))))
 
 (deftest tomcat-application-conf-test
-  (is (= (remote-file/remote-file*
-          {}
-          "/p/Catalina/localhost/hudson.xml"
-          :content "content"
-          :literal true)
+  (is (= (first
+          (build-resources
+           []
+           (directory/directory "/p/Catalina/localhost/")
+           (remote-file/remote-file
+            "/p/Catalina/localhost/hudson.xml"
+            :content "content"
+            :flag-on-changed tomcat-config-changed-flag
+            :literal true)))
          (first
           (build-resources
            [:parameters {:host {:id {:tomcat {:config-path "/p/"}}}}]
@@ -293,7 +305,8 @@
            (directory/directory "/var/lib/tomcat6/conf")
            (remote-file/remote-file
             "/var/lib/tomcat6/conf/server.xml"
-            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>")))
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>"
+            :flag-on-changed tomcat-config-changed-flag)))
          (first
           (build-resources
            [:parameters {:host {:id {:tomcat {:base "/var/lib/tomcat6/"}}}}]
@@ -314,7 +327,8 @@
            (directory/directory "/var/lib/tomcat6/conf")
            (remote-file/remote-file
             "/var/lib/tomcat6/conf/server.xml"
-            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>")))
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>"
+            :flag-on-changed tomcat-config-changed-flag)))
          (first
           (build-resources
            [:parameters {:host {:id {:tomcat {:base "/var/lib/tomcat6/"}}}}]
@@ -335,3 +349,57 @@
        (application-conf "name" "content")
        (user "name" {:password "pwd"})
        (server-configuration (server)))))
+
+(def
+  ^{:doc "An html file for tomcat to server to verify we have it running."}
+  index-html
+  "<html>
+<head><title>Pallet-live-test</title></head>
+<body>LIVE TEST</body></html>")
+
+(def
+  ^{:doc "An application configuration context"}
+  application-config
+  "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+<Context
+privileged=\"true\"
+path=\"/pallet-live-test\"
+swallowOutput=\"true\">
+</Context>")
+
+(deftest live-test
+  (doseq [image [{:os-family :ubuntu :os-version-matches "10.04"}
+                 {:os-family :ubuntu :os-version-matches "10.10"}
+                 {:os-family :centos :os-version-matches "5.5"}
+                 {:os-family :centos :os-version-matches "5.3"}]]
+    (live-test/test-nodes
+     [compute node-map node-types]
+     {:tomcat
+      {:image image
+       :count 1
+       :phases {:bootstrap (resource/phase
+                            (automated-admin-user/automated-admin-user))
+                :configure (resource/phase
+                            (install :version 6)
+                            (server-configuration (server))
+                            (application-conf
+                             "pallet-live-test" application-config)
+                            (thread-expr/let-with-arg->
+                             request
+                             [tomcat-base (parameter/get-for-target
+                                           request [:tomcat :base])]
+                             (directory/directory
+                              (str tomcat-base "webapps/pallet-live-test/"))
+                             (remote-file/remote-file
+                              (str tomcat-base "webapps/pallet-live-test/index.html")
+                              :content index-html :literal true
+                              :flag-on-changed tomcat-config-changed-flag))
+                            (init-service
+                             :if-config-changed true :action :restart))
+                :verify (resource/phase
+                         (exec-script/exec-checked-script
+                          "check tomcat is running"
+                          (pipe
+                           (wget "-O-" "http://localhost:8080/pallet-live-test/")
+                           (grep (quoted "LIVE TEST")))))}}}
+     (core/lift (:tomcat node-types) :phase :verify :compute compute))))

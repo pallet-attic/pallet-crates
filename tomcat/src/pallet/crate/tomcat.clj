@@ -35,11 +35,10 @@
    [net.cgrand.enlive-html :as enlive]
    [clojure.contrib.string :as string]))
 
-(def dummy-for-marginalia)
-
 (def
   ^{:doc "Baseline configuration file path" :private true}
   tomcat-config-root "/etc/")
+
 (def
   ^{:doc "Baseline install path" :private true}
   tomcat-base "/var/lib/")
@@ -65,36 +64,53 @@
    :pacman "tomcat"
    :yum "tomcat"})
 
+(def ^{:doc "Flag for recognising changes to configuration"}
+  tomcat-config-changed-flag "tomcat-config")
 
 
-(defn tomcat
+(defn install
   "Install tomcat from the standard package sources.
 
    On older centos versions, jpackge will be used to obtain tomcat 6 if
    version 6 is explicitly requested.
 
-   Options:
-    - :user     override the tomcat user
-    - :group    override the tomcat group
-    - :version  specify the tomcat version (5, 6, or arbitrary string)"
-  [request & {:keys [user group version] :as options}]
+   Options controlling the installed package:
+   - :version    specify the tomcat version (5, 6, or arbitrary string)
+   - :package    the name of the package to install
+
+   Options for specifying non-standard configuration used by the installed
+   package:
+   - :user       override the tomcat user
+   - :group      override the tomcat group
+   - :service    the name of the init service installed by the package
+   - :base-dir   the install base used by the package
+   - :config-dir the directory used for the configuration files"
+  [request & {:keys [user group version package service
+                     base-dir config-dir] :as options}]
   (let [package (or
+                 package
                  (version-package version version)
                  (package-name (request-map/os-family request))
                  (package-name (:target-packager request)))
-        tomcat-user (tomcat-user-group-name (:target-packager request))]
+        tomcat-user (tomcat-user-group-name (:target-packager request))
+        user (or user tomcat-user)
+        group (or group tomcat-user)
+        service (or service package)
+        base-dir (or base-dir (str tomcat-base package "/"))
+        config-dir (str tomcat-config-root package "/")]
     (-> request
         (when->
          (and (= :centos (request-map/os-family request))
-              (= "5.3" (request-map/os-version request)))
+              (re-matches #"5\.[0-5]" (request-map/os-version request)))
          (package/add-jpackage :releasever "5.0"))
         (when-> (= :install (:action options :install))
                 (parameter/assoc-for-target
-                 [:tomcat :base] (str tomcat-base package "/")
-                 [:tomcat :config-path] (str tomcat-config-root package "/")
-                 [:tomcat :owner] (or user tomcat-user)
-                 [:tomcat :group] (or group tomcat-user)
-                 [:tomcat :service] package))
+                 [:tomcat :base] base-dir
+                 [:tomcat :config-path] config-dir
+                 [:tomcat :owner] user
+                 [:tomcat :group] group
+                 [:tomcat :service] service))
+        (package/package-manager :update)
         (apply->
          package/package package
          (apply concat options))
@@ -102,17 +118,25 @@
                 (directory/directory
                  tomcat-base :action :delete :recursive true :force true)))))
 
+(defn tomcat
+  "DEPRECATED: use install instead."
+  [& args]
+  (apply install args))
+
 (defn init-service
   "Control the tomcat service.
-   Arguments are as for `pallet.resource.service/service`, except the service
+
+   Specify `:if-config-changed true` to make actions conditional on a change in
+   configuration.
+
+   Other options are as for `pallet.resource.service/service`. The service
    name is looked up in the request parameters."
-  [request & args]
-  (->
-   request
-   (apply->
-    service/service
-    (parameter/get-for-target request [:tomcat :service])
-    args)))
+  [request & {:keys [action if-config-changed if-flag] :as options}]
+  (let [service (parameter/get-for-target request [:tomcat :service])
+        options (if if-config-changed
+                  (assoc options :if-flag tomcat-config-changed-flag)
+                  options)]
+    (-> request (apply-map-> service/service service options))))
 
 (defn undeploy
   "Removes the named webapp directories, and any war files with the same base
@@ -198,8 +222,11 @@
                (remote-file/remote-file
                 policy-file
                 :content (string/join \newline (map output-grants grants))
-                :literal true))
-      :remove (file/file request policy-file :action :delete))))
+                :literal true
+                :flag-on-changed tomcat-config-changed-flag))
+      :remove (file/file
+               request policy-file :action :delete
+               :flag-on-changed tomcat-config-changed-flag))))
 
 (defn application-conf
   "Configure tomcat applications.
@@ -208,10 +235,15 @@
   [request name content & {:keys [action] :or {action :create} :as options}]
   (let [tomcat-config-root (parameter/get-for-target
                             request [:tomcat :config-path])
-        app-file (str tomcat-config-root "Catalina/localhost/" name ".xml")]
+        app-path (str tomcat-config-root "Catalina/localhost/")
+        app-file (str app-path name ".xml")]
     (case action
-      :create (remote-file/remote-file
-               request app-file :content content :literal true)
+      :create (->
+               request
+               (directory/directory app-path)
+               (remote-file/remote-file
+                app-file :content content :literal true
+                :flag-on-changed tomcat-config-changed-flag))
       :remove (file/file request app-file :action :delete))))
 
 (defn users*
@@ -722,4 +754,5 @@
      (remote-file/remote-file
       (str base "conf/server.xml")
       :content (apply
-                str (tomcat-server-xml (:node-type request) server))))))
+                str (tomcat-server-xml (:node-type request) server))
+      :flag-on-changed tomcat-config-changed-flag))))
