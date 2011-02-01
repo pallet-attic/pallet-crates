@@ -1,10 +1,15 @@
 (ns pallet.crate.java
-  "Crates for java installation and configuration.
+  "Crates for java 1.6 installation and configuration.
 
-   Sun Java installation on CentOS requires use of Oracle rpm's."
+   Sun Java installation on CentOS requires use of Oracle rpm's. Download from
+   http://www.oracle.com/technetwork/java/javase/downloads/index.html and get
+   the .rpm.bin file onto the node with remote-file.  Then pass the location of
+   the rpm.bin file on the node using the :rpm-bin option. The rpm will be
+   installed."
   (:require
    [pallet.request-map :as request-map]
    [pallet.resource :as resource]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [pallet.script :as script]
@@ -13,6 +18,8 @@
   (:use pallet.thread-expr))
 
 (def vendor-keywords #{:openjdk :sun})
+(def component-keywords #{:jdk :jre :bin})
+(def all-keywords (into #{} (concat vendor-keywords component-keywords)))
 
 (def deb-package-names
   {:openjdk "openjdk-6-"
@@ -41,13 +48,14 @@
     [component]
     [(pacman-package-names vendor)]))
 
-(def sun-rpm-path "http://cds.sun.com/is-bin/INTERSHOP.enfinity/WFS/CDS-CDS_Developer-Site/en_US/-/USD/VerifyItem-Start/jdk-6u18-linux-i586-rpm.bin?BundledLineItemUUID=wb5IBe.lDHsAAAEn5u8ZJpvu&OrderID=yJxIBe.lc7wAAAEn2.8ZJpvu&ProductID=6XdIBe.pudAAAAElYStRSbJV&FileName=/jdk-6u18-linux-i586-rpm.bin")
-
 (def ubuntu-partner-url "http://archive.canonical.com/ubuntu")
 
 (defn java
   "Install java. Options can be :sun, :openjdk, :jdk, :jre.
-   By default openjdk will be installed."
+   By default openjdk will be installed.
+
+   On CentOS, when specifying :sun, you can also pass the path of the
+   Oracle rpm.bin file to the :rpm-bin option, and the rpm will be installed."
   [request & options]
   (let [vendors (or (seq (filter vendor-keywords options))
                     [:sun])
@@ -86,8 +94,18 @@
                                (package/package-manager
                                 :add-scope :scope :non-free)
                                (package/package-manager :update)))
-               (when-> (= packager :yum)
-                       (package/package "jpackage-utils")))
+               (when->
+                (= packager :yum)
+                (package/package "jpackage-utils")
+                (when-let->
+                 [rpm-bin (:rpm-bin
+                           (apply hash-map (remove all-keywords options)))]
+                 (exec-script/exec-checked-script
+                  "Unpack java rpm"
+                  (heredoc "java-bin-resp" "A\n\n")
+                  (~rpm-bin < "java-bin-resp"))
+                 (package/package "java-1.6.0-sun-compat"))))
+       (package/package-manager :update)
        (for-> [vendor vendors]
               (for-> [component components]
                      (vc vendor component)))))))

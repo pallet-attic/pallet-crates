@@ -6,6 +6,7 @@
    [pallet.live-test :as live-test]
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.remote-file :as remote-file]
    [pallet.resource.package :as package]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
@@ -43,6 +44,7 @@
             :aptitude {:url ubuntu-partner-url
                        :scopes ["partner"]})
            (pkg-config)
+           (package/package-manager :update)
            (debconf "sun-java6-bin")
            (package/package "sun-java6-bin")
            (debconf "sun-java6-jdk")
@@ -61,6 +63,7 @@
             :aptitude {:url ubuntu-partner-url
                        :scopes ["partner"]})
            (pkg-config)
+           (package/package-manager :update)
            (debconf "sun-java6-bin")
            (package/package "sun-java6-bin")
            (debconf "sun-java6-jdk")
@@ -74,6 +77,7 @@
   (is (= (first
           (build-resources
            []
+           (package/package-manager :update)
            (package/package "openjdk-6-jre")))
          (first
           (build-resources
@@ -82,6 +86,7 @@
   (is (= (first
           (build-resources
            [:node-type {:image {:packager :pacman}}]
+           (package/package-manager :update)
            (package/package "openjdk6")))
          (first
           (build-resources
@@ -112,4 +117,28 @@
                          (exec-script/exec-checked-script
                           "check java installed"
                           (java -version)))}}}
+     (core/lift (:java node-types) :phase :verify :compute compute))))
+
+;; To run this test you will need to download the Oracle Java rpm downloads in
+;; the artifacts directory.
+(deftest centos-live-test
+  (doseq [image [{:os-family :centos :os-version-matches "5.5"}]]
+    (live-test/test-nodes
+     [compute node-map node-types]
+     {:java
+      {:image image
+       :count 1
+       :phases
+       {:bootstrap (resource/phase
+                    (automated-admin-user/automated-admin-user))
+        :configure (resource/phase
+                    (remote-file/remote-file
+                     "jdk.bin"
+                     :local-file "artifacts/jdk-6u23-linux-x64-rpm.bin"
+                     :mode "755")
+                    (java :sun :rpm-bin "./jdk.bin"))
+        :verify (resource/phase
+                 (exec-script/exec-checked-script
+                  "check java installed"
+                  (java -version)))}}}
      (core/lift (:java node-types) :phase :verify :compute compute))))
