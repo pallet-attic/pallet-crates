@@ -1,13 +1,17 @@
 (ns pallet.crate.hudson-test
   (:use pallet.crate.hudson)
   (:require
+   [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.template :only [apply-templates]]
    [pallet.core :as core]
+   [pallet.live-test :as live-test]
    [pallet.target :as target]
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.directory :as directory]
+   [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.network-service :as network-service]
    [pallet.resource.user :as user]
    [pallet.crate.maven :as maven]
    [pallet.crate.tomcat :as tomcat]
@@ -75,11 +79,18 @@
          (normalise-scms ["http://project.org/project.git"]))))
 
 (deftest output-scm-for-git-test
-  (is (= "<org.spearce.jgit.transport.RemoteConfig>\n  <string>origin</string>\n  <int>5</int>\n  <string>fetch</string>\n  <string>+refs/heads/*:refs/remotes/origin/*</string>\n  <string>receivepack</string>\n  <string>git-upload-pack</string>\n  <string>uploadpack</string>\n  <string>git-upload-pack</string>\n  <string>url</string>\n  <string>http://project.org/project.git</string>\n  <string>tagopt</string>\n  <string></string>\n</org.spearce.jgit.transport.RemoteConfig>"
+  (is (= "<scm class=\"hudson.plugins.git.GitSCM\">\n  <remoteRepositories>\n    <org.spearce.jgit.transport.RemoteConfig>\n      <string>origin</string>\n      <int>5</int>\n      <string>fetch</string>\n      <string>+refs/heads/*:refs/remotes/origin/*</string>\n      <string>receivepack</string>\n      <string>git-upload-pack</string>\n      <string>uploadpack</string>\n      <string>git-upload-pack</string>\n      <string>url</string>\n      <string>http://project.org/project.git</string>\n      <string>tagopt</string>\n      <string></string>\n    </org.spearce.jgit.transport.RemoteConfig>\n  </remoteRepositories>\n  <branches>\n    <hudson.plugins.git.BranchSpec>\n      <name>*</name>\n    </hudson.plugins.git.BranchSpec>\n  </branches>\n  <mergeOptions></mergeOptions>\n  <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>\n  <submoduleCfg class=\"list\"></submoduleCfg>\n</scm>"
          (apply str
           (xml/emit*
            (output-scm-for :git {:tag :b :image {:os-family :ubuntu}}
                            "http://project.org/project.git" {}))))))
+
+(deftest output-scm-for-svn-test
+  (is (= "<scm class=\"hudson.scm.SubversionSCM\">\n  <locations>\n    <hudson.scm.SubversionSCM_-ModuleLocation>\n      <remote>http://project.org/svn/project</remote>\n    </hudson.scm.SubversionSCM_-ModuleLocation>\n  </locations>\n  <useUpdate>false</useUpdate>\n  <doRevert>false</doRevert>\n  <excludedRegions></excludedRegions>\n  <includedRegions></includedRegions>\n  <excludedUsers></excludedUsers>\n  <excludedRevprop></excludedRevprop>\n  <excludedCommitMessages>false</excludedCommitMessages>\n</scm>"
+         (apply str
+          (xml/emit*
+           (output-scm-for :svn {:tag :b :image {:os-family :ubuntu}}
+                           "http://project.org/svn/project" {}))))))
 
 (deftest hudson-job-test
   (core/defnode n {})
@@ -91,7 +102,7 @@
             :owner "root" :group "tomcat6" :mode "0775")
            (remote-file/remote-file
             "/var/lib/hudson/jobs/project/config.xml"
-            :content "<?xml version='1.0' encoding='utf-8'?>\n<maven2-moduleset>\n  <actions></actions>\n  <description></description>\n  <logRotator>\n    <daysToKeep>-1</daysToKeep>\n    <numToKeep>-1</numToKeep>\n    <artifactDaysToKeep>-1</artifactDaysToKeep>\n    <artifactNumToKeep>-1</artifactNumToKeep>\n  </logRotator>\n  <keepDependencies>false</keepDependencies>\n  <properties>\n    <com.coravy.hudson.plugins.github.GithubProjectProperty>\n      <projectUrl></projectUrl>\n    </com.coravy.hudson.plugins.github.GithubProjectProperty>\n  </properties>\n  <scm class=\"hudson.plugins.git.GitSCM\">\n    <remoteRepositories><org.spearce.jgit.transport.RemoteConfig>\n  <string>origin</string>\n  <int>5</int>\n  <string>fetch</string>\n  <string>+refs/heads/*:refs/remotes/origin/*</string>\n  <string>receivepack</string>\n  <string>git-upload-pack</string>\n  <string>uploadpack</string>\n  <string>git-upload-pack</string>\n  <string>url</string>\n  <string>http://project.org/project.git</string>\n  <string>tagopt</string>\n  <string></string>\n</org.spearce.jgit.transport.RemoteConfig>\n      \n    </remoteRepositories>\n    <branches>\n      <hudson.plugins.git.BranchSpec>\n        <name>origin/master</name>\n      </hudson.plugins.git.BranchSpec>\n    </branches>\n    <mergeOptions></mergeOptions>\n    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>\n    <submoduleCfg class=\"list\"></submoduleCfg>\n  </scm>\n  <canRoam>true</canRoam>\n  <disabled>false</disabled>\n  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n  <triggers class=\"vector\">\n    <hudson.triggers.SCMTrigger>\n      <spec>*/15 * * * *</spec>\n    </hudson.triggers.SCMTrigger>\n  </triggers>\n  <concurrentBuild>false</concurrentBuild>\n  <rootModule>\n    <groupId>project</groupId>\n    <artifactId>artifact</artifactId>\n  </rootModule>\n  <goals>clojure:test</goals>\n  \n  <mavenOpts>-Dx=y</mavenOpts>\n  <mavenName>base maven</mavenName>\n  <aggregatorStyleBuild>true</aggregatorStyleBuild>\n  <incrementalBuild>false</incrementalBuild>\n  <usePrivateRepository>false</usePrivateRepository>\n  <ignoreUpstremChanges>false</ignoreUpstremChanges>\n  <archivingDisabled>false</archivingDisabled>\n  <reporters></reporters>\n  <publishers></publishers>\n  <buildWrappers></buildWrappers>\n</maven2-moduleset>"
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<maven2-moduleset>\n  <actions></actions>\n  <description></description>\n  <logRotator>\n    <daysToKeep>-1</daysToKeep>\n    <numToKeep>-1</numToKeep>\n    <artifactDaysToKeep>-1</artifactDaysToKeep>\n    <artifactNumToKeep>-1</artifactNumToKeep>\n  </logRotator>\n  <keepDependencies>false</keepDependencies>\n  <properties>\n    <com.coravy.hudson.plugins.github.GithubProjectProperty>\n      <projectUrl></projectUrl>\n    </com.coravy.hudson.plugins.github.GithubProjectProperty>\n  </properties>\n  <scm class=\"hudson.plugins.git.GitSCM\">\n  <remoteRepositories>\n    <org.spearce.jgit.transport.RemoteConfig>\n      <string>origin</string>\n      <int>5</int>\n      <string>fetch</string>\n      <string>+refs/heads/*:refs/remotes/origin/*</string>\n      <string>receivepack</string>\n      <string>git-upload-pack</string>\n      <string>uploadpack</string>\n      <string>git-upload-pack</string>\n      <string>url</string>\n      <string>http://project.org/project.git</string>\n      <string>tagopt</string>\n      <string></string>\n    </org.spearce.jgit.transport.RemoteConfig>\n  </remoteRepositories>\n  <branches>\n    <hudson.plugins.git.BranchSpec>\n      <name>*</name>\n    </hudson.plugins.git.BranchSpec>\n  </branches>\n  <mergeOptions></mergeOptions>\n  <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>\n  <submoduleCfg class=\"list\"></submoduleCfg>\n</scm>\n  <canRoam>true</canRoam>\n  <disabled>false</disabled>\n  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n  <triggers class=\"vector\">\n    <hudson.triggers.SCMTrigger>\n      <spec>*/15 * * * *</spec>\n    </hudson.triggers.SCMTrigger>\n  </triggers>\n  <concurrentBuild>false</concurrentBuild>\n  <rootModule>\n    <groupId>project</groupId>\n    <artifactId>artifact</artifactId>\n  </rootModule>\n  <goals>clojure:test</goals>\n  \n  <mavenOpts>-Dx=y</mavenOpts>\n  <mavenName>base maven</mavenName>\n  <aggregatorStyleBuild>true</aggregatorStyleBuild>\n  <incrementalBuild>false</incrementalBuild>\n  <usePrivateRepository>false</usePrivateRepository>\n  <ignoreUpstremChanges>false</ignoreUpstremChanges>\n  <archivingDisabled>false</archivingDisabled>\n  <reporters></reporters>\n  <publishers></publishers>\n  <buildWrappers></buildWrappers>\n</maven2-moduleset>"
             :owner "root" :group "tomcat6" :mode "0664")
            (directory/directory
             "/var/lib/hudson"
@@ -181,3 +192,40 @@
        [:parameters parameters]
        (tomcat-deploy)
        (tomcat-undeploy))))
+
+(deftest live-test
+  (doseq [image [{:os-family :ubuntu :os-version-matches "10.10"}
+                 ;; {:os-family :ubuntu :os-version-matches "10.04"}
+                 ;; {:os-family :centos :os-version-matches "5.3"}
+                 ;; {:os-family :centos :os-version-matches "5.5"}
+                 ]]
+    (live-test/test-nodes
+     [compute node-map node-types]
+     {:hudson
+      {:image image
+       :count 1
+       :phases {:bootstrap (resource/phase
+                            (automated-admin-user/automated-admin-user))
+                :configure (resource/phase
+                            (tomcat/install :version 6)
+                            (tomcat-deploy)
+                            (config)
+                            (plugin :git)
+                            (job
+                             :maven2 "gitjob"
+                             :scm ["git://github.com/hugoduncan/pallet.git"])
+                            (job
+                             :maven2 "svnjob"
+                             :scm ["http://svn.host.com/project"])
+                            (tomcat/init-service :action :restart))
+                :verify (resource/phase
+                         ;; hudson takes a while to start up
+                         (network-service/wait-for-http-status
+                          "http://localhost:8080/hudson" 200 :url-name "hudson")
+                         (exec-script/exec-checked-script
+                          "check hudson installed"
+                          (wget "-O-" "http://localhost:8080/hudson")
+                          (wget "-O-" "http://localhost:8080/hudson/job/gitjob")
+                          (wget
+                           "-O-" "http://localhost:8080/hudson/job/svnjob")))}}}
+     (core/lift (:hudson node-types) :phase :verify :compute compute))))

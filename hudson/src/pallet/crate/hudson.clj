@@ -33,13 +33,14 @@
 (defvar- *maven-file* "hudson.tasks.Maven.xml")
 (defvar- *maven2-job-config-file* "job/maven2_config.xml")
 (defvar- *git-file* "scm/git.xml")
+(defvar- *svn-file* "scm/svn.xml")
 
 (defn path-for
   "Get the actual filename corresponding to a template."
   [base] (str "crate/hudson/" base))
 
 (def hudson-download-base-url
-  "http://mirrors.hudson-labs.org/war/")
+  "http://mirrors.jenkins-ci.org/war/")
 
 (defn hudson-url
   "Calculate the url for the specified version"
@@ -49,7 +50,8 @@
     (str "http://hudson-ci.org/download/war/" version "/hudson.war")))
 
 (def hudson-md5
-     {"1.377" "81b602c754fdd28cc4d57a9b82a7c1f0"
+     {"1.395" "6af0fb753a099616c74104c60d6b26dd"
+      "1.377" "81b602c754fdd28cc4d57a9b82a7c1f0"
       "1.355" "5d616c367d7a7888100ae6e98a5f2bd7"})
 
 (defn tomcat-deploy
@@ -278,11 +280,32 @@
   "Output the scm definition for specified type"
   (fn [scm-type node-type scm-path options] scm-type))
 
+(enlive/deffragment branch-transform
+  [branch]
+  [:name]
+  (xml/content branch))
+
+(def class-for-scm-remote
+  {:git "org.spearce.jgit.transport.RemoteConfig"})
 
 ;; "Generate git scm configuration for job content"
 (enlive/defsnippet git-job-xml
   (path-for *git-file*) node-type
   [node-type scm-path options]
+  [:branches :> :*]
+  (xml/clone-for [branch (:branches options ["*"])]
+                 (branch-transform branch))
+  [:mergeOptions]
+  (let [target (:merge-target options)]
+    (if target
+      (xml/transformation
+       [:mergeTarget] (xml/content target)
+       [:mergeRemote] (xml/set-attr
+                       :reference (format
+                                   "../../remoteRepositories/%s"
+                                   (class-for-scm-remote :git))))
+      (xml/content "")))
+
   [:#url]
   (xml/do->
    (xml/content scm-path)
@@ -312,20 +335,30 @@
   [scm-type node-type scm-path options]
   (git-job-xml node-type scm-path options))
 
+;; "Generate svn scm configuration for job content"
+(enlive/defsnippet svn-job-xml
+  (path-for *svn-file*) node-type
+  [node-type scm-path options]
+  [:remote] (xml/content scm-path)
+  [:useUpdate] (xml/content (truefalse (:use-update options)))
+  [:doRevert] (xml/content (truefalse (:do-revert options)))
+  [:excludedRegions] (xml/content (:excluded-regions options))
+  [:includedRegions] (xml/content (:included-regions options))
+  [:excludedUsers] (xml/content (:excluded-users options))
+  [:excludedRevprop] (xml/content (:excluded-revprop options))
+  [:excludedCommitMessages] (xml/content
+                             (truefalse (:excluded-commit-essages options))))
+
+(defmethod output-scm-for :svn
+  [scm-type node-type scm-path options]
+  (svn-job-xml node-type scm-path options))
 
 (defn normalise-scms [scms]
   (map #(if (string? %) [%] %) scms))
 
 (def class-for-scm
-  {:git "hudson.plugins.git.GitSCM"})
-
-(def class-for-scm-remote
-  {:git "org.spearce.jgit.transport.RemoteConfig"})
-
-(enlive/deffragment branch-transform
-  [branch]
-  [:name]
-  (xml/content branch))
+  {:git "hudson.plugins.git.GitSCM"
+   :svn "hudson.scm.SubversionSCM"})
 
 (defmulti publisher-config
   "Publisher configuration"
@@ -373,21 +406,14 @@
   (enlive/xml-emit
    (enlive/xml-template
     (path-for *maven2-job-config-file*) node-type [scm-type scms options]
-    [:scm] (xml/set-attr :class (class-for-scm scm-type))
-    [:remoteRepositories :> :*] nil
-    [:remoteRepositories]
-    (apply
-     xml/prepend
-     (mapcat #(output-scm-for
-               scm-type
-               node-type
-               (first %)
-               (if (seq (next %)) (apply hash-map %) {}))
-             scms))
-
-    [:branches :> :*]
-    (xml/clone-for [branch (:branches options ["*"])]
-                   (branch-transform branch))
+    [:scm] (apply
+            xml/substitute
+            (mapcat #(output-scm-for
+                      scm-type
+                      node-type
+                      (first %)
+                      (if (seq (next %)) (apply hash-map %) {}))
+                    scms))
     [:mavenName]
     (enlive/transform-if-let [maven-name (:maven-name options)]
                              (xml/content maven-name))
@@ -407,16 +433,7 @@
     [:properties :* :projectUrl]
     (enlive/transform-if-let [github-url (-> options :github :projectUrl)]
                              (xml/content github-url))
-    [:mergeOptions]
-    (let [target (:merge-target options)]
-      (if target
-        (xml/transformation
-         [:mergeTarget] (xml/content target)
-         [:mergeRemote] (xml/set-attr
-                         :reference (format
-                                     "../../remoteRepositories/%s"
-                                     (class-for-scm-remote scm-type))))
-        (xml/content "")))
+
     [:authToken] (if-let [token (:auth-token options)]
                    (xml/content token))
     [:publishers]
