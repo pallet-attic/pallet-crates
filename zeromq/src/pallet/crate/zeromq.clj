@@ -3,6 +3,9 @@
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-directory :as remote-directory]
+   [pallet.crate.maven :as maven]
+   [pallet.crate.git :as git]
+   [pallet.parameter :as parameter]
    [pallet.crate.iptables :as iptables]))
 
 (def src-path "/opt/local/zeromq")
@@ -12,16 +15,16 @@
   "The url for downloading zeromq"
   [version]
   (format
-   "http://www.zeromq.org/local--files/area:download/zeromq-%s.tar.gz"
+   "http://download.zeromq.org/zeromq-%s.tar.gz"
    version))
 
 (defn install
   "Install zeromq from source."
-  [request & {:keys [version] :or {version "2.0.9"}}]
+  [request & {:keys [version] :or {version "2.0.10"}}]
   (->
    request
    (package/packages
-    :yum ["gcc" "glib" "glibc-common" "uuid-dev"]
+    :yum ["gcc" "gcc-c++" "glib" "glibc-common" "libuuid-devel"]
     :aptitude ["build-essential" "uuid-dev"])
    (remote-directory/remote-directory
     src-path
@@ -32,7 +35,42 @@
     ("./configure")
     (make)
     (make install)
-    (ldconfig))))
+    ("/sbin/ldconfig"))
+   ;;(parameter/assoc-for-target [:zeromq :version] version)
+   ))
+
+(defn install-jzmq
+  "Install jzmq from source. You must install zeromq first."
+  [request & {:keys [version]}]
+  (->
+   request
+   (maven/package)
+   (git/git)
+   (package/packages
+    :yum ["libtool" "pkg-config" "autoconf"]
+    :aptitude ["libtool" "pkg-config" "autoconf"])
+
+   (exec-script/exec-checked-script
+    "Build jzmq"
+
+    (var tmpdir (quoted (make-temp-dir "rf")))
+    (cd (quoted @tmpdir))
+    (git clone "https://github.com/zeromq/jzmq.git")
+
+    (cd "jzmq")
+    (export (str "JAVA_HOME="
+                 @(dirname @(dirname @(update-alternatives --list javac)))))
+    
+    ("./autogen.sh")
+    ("./configure")
+    (make)
+
+    (make install)
+    (mvn ~(print-str "install:install-file -Dfile=/usr/local/share/java/zmq.jar"
+                     "-DgroupId=org.zeromq"
+                     "-DartifactId=zmq"
+                     (format "-Dversion=%s" version)
+                     "-Dpackaging=jar")))))
 
 (defn iptables-accept
   "Accept zeromq connections, by default on port 5672"
