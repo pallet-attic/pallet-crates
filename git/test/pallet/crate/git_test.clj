@@ -16,6 +16,7 @@
     (is (= (first
             (build-resources
              [:node-type a]
+             (package/package-manager :update)
              (package/package "git-core")
              (package/package "git-email")))
            (first
@@ -26,6 +27,7 @@
     (is (= (first
             (build-resources
              [:node-type a]
+             (package/package-manager :update)
              (package/package "git")
              (package/package "git-email")))
            (first
@@ -34,9 +36,7 @@
              (git)))))))
 
 (deftest live-test
-  (doseq [image [{:os-family :ubuntu :os-version-matches "10.04"}
-                 {:os-family :ubuntu :os-version-matches "10.10"}
-                 {:os-family :debian :os-version-matches "5.0.7"}]]
+  (doseq [image live-test/*images*]
     (live-test/test-nodes
      [compute node-map node-types]
      {:git
@@ -44,10 +44,11 @@
        :count 1
        :phases {:bootstrap (resource/phase
                             (package/package-manager :update)
+                            (package/package "coreutils") ;; for debian
                             (automated-admin-user/automated-admin-user))
                 :configure #'git
                 :verify (resource/phase
                          (exec-script/exec-checked-script
                           "check git command found"
-                          (git "--help")))}}}
+                          (git "--version")))}}}
      (core/lift (:git node-types) :phase :verify :compute compute))))
