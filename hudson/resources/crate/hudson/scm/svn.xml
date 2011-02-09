@@ -1,11 +1,12 @@
 <scm class="hudson.scm.SubversionSCM">
   <locations>
     <hudson.scm.SubversionSCM_-ModuleLocation>
-      <remote>http://svn.gogrid.com</remote>
+      <remote>http://svn.somewhere.com</remote>
     </hudson.scm.SubversionSCM_-ModuleLocation>
   </locations>
   <useUpdate>true</useUpdate>
   <doRevert>true</doRevert>
+  <browser></browser>
   <excludedRegions></excludedRegions>
   <includedRegions></includedRegions>
   <excludedUsers></excludedUsers>

@@ -39,15 +39,18 @@
   "Get the actual filename corresponding to a template."
   [base] (str "crate/hudson/" base))
 
-(def hudson-download-base-url
-  "http://mirrors.jenkins-ci.org/war/")
+(def hudson-base-url "http://mirrors.jenkins-ci.org/")
+(def hudson-download-base-url (str hudson-base-url "war/"))
 
 (defn hudson-url
   "Calculate the url for the specified version"
   [version]
   (if (= version :latest)
-    (str hudson-download-base-url "latest/hudson.war")
-    (str "http://hudson-ci.org/download/war/" version "/hudson.war")))
+    (str hudson-download-base-url "latest/jenkins.war")
+    (str hudson-download-base-url version "/"
+         (if (< (java.lang.Float/parseFloat (str version)) 1.396)
+           "hudson" "jenkins")
+         ".war")))
 
 (def hudson-md5
      {"1.395" "6af0fb753a099616c74104c60d6b26dd"
@@ -71,7 +74,9 @@
       [:hudson :group] group)
      (directory/directory
       hudson-data-path :owner hudson-owner :group group :mode "0775")
-     (remote-file file :url (hudson-url version) :md5 (hudson-md5 version))
+     (remote-file
+      file :url (hudson-url version)
+      :md5 (hudson-md5 version))
      (tomcat/policy
       99 "hudson"
       {(str "file:${catalina.base}/webapps/hudson/-")
@@ -181,8 +186,41 @@
   [request job]
   (cli-command request (format "build %s: " job) (format "build %s" job)))
 
+(defn truefalse [value]
+  (if value "true" "false"))
+
+(def security-realm-class
+  {:hudson "hudson.security.HudsonPrivateSecurityRealm"})
+
+(def authorization-strategy-class
+  {:global-matrix "hudson.security.GlobalMatrixAuthorizationStrategy"})
+
+(def permission-class
+  {:computer-configure "hudson.model.Computer.Configure"
+   :computer-delete "hudson.model.Computer.Delete"
+   :hudson-administer "hudson.model.Hudson.Administer"
+   :hudson-read "hudson.model.Hudson.Read"
+   :item-build "hudson.model.Item.Build"
+   :item-configure "hudson.model.Item.Configure"
+   :item-create "hudson.model.Item.Create"
+   :item-delete "hudson.model.Item.Delete"
+   :item-read "hudson.model.Item.Read"
+   :item-workspace "hudson.model.Item.Workspace"
+   :run-delete "hudson.model.Run.Delete"
+   :run-update "hudson.model.Run.Update"
+   :scm-tag "hudson.scm.SCM.Tag"
+   :view-configure "hudson.model.View.Configure"
+   :view-create "hudson.model.View.Create"
+   :view-delete "hudson.model.View.Delete"})
+
+(def all-permissions
+  [:computer-configure :computer-delete :hudson-administer :hudson-read
+   :item-build :item-configure :item-create :item-delete :item-read
+   :item-workspace :run-delete :run-update :scm-tag :view-configure
+   :view-create :view-delete])
+
 (defmulti plugin-config
-  "Plugin configuration"
+  "Plugin specific configuration."
   (fn [request plugin options] plugin))
 
 (defmethod plugin-config :git
@@ -191,9 +229,6 @@
    request
    (parameter/get-for-target request [:hudson :user])
    :action :manage :comment "hudson"))
-
-(defn truefalse [value]
-  (if value "true" "false"))
 
 (defmethod plugin-config :ircbot
   [request plugin options]
@@ -233,35 +268,70 @@
 (defmethod plugin-config :default [request plugin options]
   request)
 
-(def hudson-plugins
-  {:git {:url "http://hudson-ci.org/latest/git.hpi"
-         :md5 "423afd697acdb2b7728f80573131c15f"}
-   :github {:url "http://hudson-ci.org/latest/github.hpi"}
-   :instant-messaging {:url
-                       "http://hudson-ci.org/latest/instant-messaging.hpi"}
-   :ircbot {:url "http://hudson-ci.org/latest/ircbot.hpi"}
-   :greenballs {:url "http://hudson-ci.org/latest/greenballs.hpi"}})
 
- (defn plugin
-   "Install a hudson plugin.  The plugin should be a keyword.
+(defmulti plugin-property
+  "Plugin specific job property."
+  (fn [[plugin options]] plugin))
+
+(def property-names
+  {:authorization-matrix "hudson.security.AuthorizationMatrixProperty"
+   :disk-usage "hudson.plugins.disk__usage.DiskUsageProperty"
+   :github "com.coravy.hudson.plugins.github.GithubProjectProperty"
+   :jira "hudson.plugins.jira.JiraProjectProperty"
+   :shelve-project-plugin
+     "org.jvnet.hudson.plugins.shelveproject.ShelveProjectProperty"})
+
+;; default implementation looks up the property in the `property-names` map
+;; and adds tags for each of the entries in `options`
+(defmethod plugin-property :default [[plugin options]]
+  {:tag (property-names plugin)
+   :content (map
+             #(hash-map :tag (name (key %)) :content (str (val %)))
+             options)})
+
+(defmethod plugin-property :authorization-matrix [[plugin options]]
+  {:tag (property-names plugin)
+   :content (mapcat
+             (fn [{:keys [user permissions]}]
+               (map
+                (fn [permission]
+                  {:tag "permission"
+                   :content (format
+                             "%s:%s" (permission-class permission) user)})
+                permissions))
+             options)})
+
+(def hudson-plugin-base-url "http://updates.hudson-labs.org/latest/")
+
+(def ^{:doc "allow overide of urls"}
+  hudson-plugins {})
+
+(defn default-plugin-path
+  [plugin]
+  (str hudson-plugin-base-url (name plugin) ".hpi"))
+
+(defn plugin
+  "Install a hudson plugin.  The plugin should be a keyword.
    :url can be used to specify a string containing the download url"
   [request plugin & {:keys [url md5] :as options}]
   {:pre [(keyword? plugin)]}
   (info (str "Hudson - add plugin " plugin))
-  (let [src (merge (plugin hudson-plugins)
-                   (select-keys options [:url :md5]))
+  (let [src (merge
+             {:url (default-plugin-path plugin)}
+             (plugin hudson-plugins)
+             (select-keys options [:url :md5]))
         hudson-data-path (parameter/get-for-target
                           request [:hudson :data-path])
         hudson-group (parameter/get-for-target
                       request [:hudson :group])]
     (-> request
-     (directory/directory (str hudson-data-path "/plugins"))
-     (apply->
-      remote-file
-      (str hudson-data-path "/plugins/" (name plugin) ".hpi")
-      :group hudson-group :mode "0664"
-      (apply concat src))
-     (plugin-config plugin options))))
+        (directory/directory (str hudson-data-path "/plugins"))
+        (apply->
+         remote-file
+         (str hudson-data-path "/plugins/" (name plugin) ".hpi")
+         :group hudson-group :mode "0664"
+         (apply concat src))
+        (plugin-config plugin options))))
 
 
 (defn determine-scm-type
@@ -339,15 +409,23 @@
 (enlive/defsnippet svn-job-xml
   (path-for *svn-file*) node-type
   [node-type scm-path options]
-  [:remote] (xml/content scm-path)
+  [:locations :*] (xml/clone-for [path (:branches options [""])]
+                                 [:remote] (xml/content (str scm-path path)))
   [:useUpdate] (xml/content (truefalse (:use-update options)))
   [:doRevert] (xml/content (truefalse (:do-revert options)))
+  ;; :browser {:class "a.b.c" :url "http://..."}
+  [:browser] (if-let [browser (:browser options)]
+               (xml/do->
+                (xml/set-attr :class (:class browser))
+                (xml/content
+                 (map
+                  #(hash-map :tag (key %) :content (val %))
+                  (dissoc browser :class)))))
   [:excludedRegions] (xml/content (:excluded-regions options))
   [:includedRegions] (xml/content (:included-regions options))
   [:excludedUsers] (xml/content (:excluded-users options))
   [:excludedRevprop] (xml/content (:excluded-revprop options))
-  [:excludedCommitMessages] (xml/content
-                             (truefalse (:excluded-commit-essages options))))
+  [:excludedCommitMessages] (xml/content (:excluded-commit-essages options)))
 
 (defmethod output-scm-for :svn
   [scm-type node-type scm-path options]
@@ -390,6 +468,13 @@
              (if (:notify-upstream-committers options) "true" false)]
             [:channels {}]])))
 
+(defmethod publisher-config :artifact-archiver
+  [[_ options]]
+  (with-out-str
+    (prxml [:hudson.tasks.ArtifactArchiver {}
+            [:artifacts {} (:artifacts options)]
+            [:latestOnly {} (truefalse (:latest-only options false))]])))
+
 ;; todo
 ;; -    <authorOrCommitter>false</authorOrCommitter>
 ;; -    <clean>false</clean>
@@ -406,24 +491,32 @@
   (enlive/xml-emit
    (enlive/xml-template
     (path-for *maven2-job-config-file*) node-type [scm-type scms options]
-    [:scm] (apply
-            xml/substitute
-            (mapcat #(output-scm-for
-                      scm-type
-                      node-type
-                      (first %)
-                      (if (seq (next %)) (apply hash-map %) {}))
-                    scms))
+    [:daysToKeep] (enlive/transform-if-let [keep (:days-to-keep options)]
+                                           (xml/content (str keep)))
+    [:numToKeep] (enlive/transform-if-let [keep (:num-to-keep options)]
+                                           (xml/content (str keep)))
+    [:properties] (enlive/transform-if-let
+                   [properties (:properties options)]
+                   (xml/content (map plugin-property properties)))
+    [:scm] (xml/substitute
+            (when scm-type
+              (output-scm-for scm-type node-type (first scms) options)))
     [:mavenName]
     (enlive/transform-if-let [maven-name (:maven-name options)]
                              (xml/content maven-name))
+    [:jdk] (if-let [jdk (:jdk options)] (xml/content jdk))
+    [:concurrentBuild] (xml/content
+                        (truefalse (:concurrent-build options false)))
+    [:goals]
+    (enlive/transform-if-let [goals (:goals options)]
+                             (xml/content goals))
+    [:defaultGoals]
+    (enlive/transform-if-let [default-goals (:default-goals options)]
+                             (xml/content default-goals))
     [:mavenOpts]
     (enlive/transform-if-let [maven-opts (:maven-opts options)]
                              (xml/content
                               maven-opts))
-    [:goals]
-    (enlive/transform-if-let [goals (:goals options)]
-                             (xml/content goals))
     [:groupId]
     (enlive/transform-if-let [group-id (:group-id options)]
                              (xml/content group-id))
@@ -441,7 +534,10 @@
      (string/join (map publisher-config (:publishers options))))
     [:aggregatorStyleBuild] (xml/content
                              (truefalse
-                              (:aggregator-style-build options true))))
+                              (:aggregator-style-build options true)))
+    [:ignoreUpstreamChanges] (xml/content
+                              (truefalse
+                               (:ignore-upstream-changes options true))))
    scm-type scms options))
 
 (defmulti output-build-for
@@ -456,15 +552,55 @@
 
 (defn job
   "Configure a hudson job.
-build-type - :maven2
-name - name to be used in links
-options are:
-:scm-type  determine scm type, eg. :git
-:scm a sequence of scm repositories, each a string or a sequence.
-     If a sequence, options are
-        :name, :refspec, :receivepack, :uploadpack and :tagopt
-:description \"a descriptive string\"
-:branches [\"branch1\" \"branch2\"]"
+
+   `build-type` :maven2 is the only supported type at the moment.
+   `name` - name to be used in links
+
+   Options are:
+   - :scm-type  determine scm type, eg. :git
+   - :scm a sequence strings specifying scm locations.
+   - :description \"a descriptive string\"
+   - :branches [\"branch1\" \"branch2\"]
+   - :properties specifies plugin properties, map from plugin keyword to a map
+                 of tag values. Use :authorization-matrix to specify a sequence
+                 of maps with :user and :permissions keys.
+   Other options are SCM specific.
+
+   git:
+   - :name
+   - :refspec
+   - :receivepack
+   - :uploadpack
+   - :tagopt
+
+   svn:
+   - :use-update
+   - :do-revert
+   - :browser {:class \"a.b.c\" :url \"http://...\"}
+   - :excluded-regions
+   - :included-regions
+   - :excluded-users
+   - :excluded-revprop
+   - :excludedCommitMessages
+
+
+   Example
+       (job
+         :maven2 \"project\"
+         :maven-opts \"-Dx=y\"
+         :branches [\"origin/master\"]
+         :scm [\"http://project.org/project.git\"]
+         :num-to-keep 10
+         :browser {:class \"hudson.scm.browsers.FishEyeSVN\"
+                   :url \"http://fisheye/browse/\"}
+         :concurrent-build true
+         :goals \"clean install\"
+         :default-goals \"install\"
+         :ignore-upstream-changes true
+         :properties {:disk-usage {}
+                      :authorization-matrix
+                        [{:user \"anonymous\"
+                          :permissions #{:item-read :item-build}}]})"
   [request build-type job-name & {:keys [refspec receivepack uploadpack
                                          tagopt description branches scm
                                          scm-type merge-target]
@@ -590,35 +726,6 @@ options are:
          :content (hudson-user-xml (:node-type request) user)
          :owner hudson-owner :group group :mode "0664"))))
 
-(def security-realm-class
-  {:hudson "hudson.security.HudsonPrivateSecurityRealm"})
-
-(def authorization-strategy-class
-  {:global-matrix "hudson.security.GlobalMatrixAuthorizationStrategy"})
-
-(def permission-class
-  {:computer-configure "hudson.model.Computer.Configure"
-   :computer-delete "hudson.model.Computer.Delete"
-   :hudson-administer "hudson.model.Hudson.Administer"
-   :hudson-read "hudson.model.Hudson.Read"
-   :item-build "hudson.model.Item.Build"
-   :item-configure "hudson.model.Item.Configure"
-   :item-create "hudson.model.Item.Create"
-   :item-delete "hudson.model.Item.Delete"
-   :item-read "hudson.model.Item.Read"
-   :item-workspace "hudson.model.Item.Workspace"
-   :run-delete "hudson.model.Run.Delete"
-   :run-update "hudson.model.Run.Update"
-   :scm-tag "hudson.scm.SCM.Tag"
-   :view-configure "hudson.model.View.Configure"
-   :view-create "hudson.model.View.Create"
-   :view-delete "hudson.model.View.Delete"})
-
-(def all-permissions
-  [:computer-configure :computer-delete :hudson-administer :hudson-read
-   :item-build :item-configure :item-create :item-delete :item-read
-   :item-workspace :run-delete :run-update :scm-tag :view-configure
-   :view-create :view-delete])
 
 (defn config-xml
   "Generate config.xml content"

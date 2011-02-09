@@ -9,15 +9,12 @@
     <artifactNumToKeep>-1</artifactNumToKeep>
   </logRotator>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <com.coravy.hudson.plugins.github.GithubProjectProperty>
-      <projectUrl></projectUrl>
-    </com.coravy.hudson.plugins.github.GithubProjectProperty>
-  </properties>
+  <properties></properties>
   <scm></scm>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <jdk/>
   <triggers class="vector">
     <hudson.triggers.SCMTrigger>
       <spec>*/15 * * * *</spec>
@@ -29,6 +26,7 @@
     <artifactId>artifact</artifactId>
   </rootModule>
   <goals>clojure:test</goals>
+  <defaultGoals></defaultGoals>
   <authToken></authToken>
   <mavenOpts></mavenOpts>
   <mavenName>base maven</mavenName>
