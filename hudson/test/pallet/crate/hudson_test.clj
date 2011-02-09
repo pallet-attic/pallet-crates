@@ -38,7 +38,7 @@
             "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "0775")
            (remote-file/remote-file
             "/var/lib/hudson/hudson.war"
-            :url (str hudson-download-base-url "latest/hudson.war")
+            :url (str hudson-download-base-url "latest/jenkins.war")
             :md5 nil)
            (tomcat/policy
             99 "hudson"
@@ -215,8 +215,10 @@
   (is (= "<hudson.tasks.ArtifactArchiver><artifacts>**/*.war</artifacts><latestOnly>false</latestOnly></hudson.tasks.ArtifactArchiver>"
          (publisher-config [:artifact-archiver {:artifacts "**/*.war"}]))))
 
+(def unsupported [{:os-family :debian}]) ; no tomcat6
+
 (deftest live-test
-  (doseq [image live-test/*images*]
+  (doseq [image (live-test/exclude-images live-test/*images* unsupported)]
     (live-test/test-nodes
      [compute node-map node-types]
      {:hudson
