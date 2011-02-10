@@ -13,12 +13,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>iptables</artifactId>
-      <version>${pallet.version}</version>
+      <version>0.4.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>automated-admin-user</artifactId>
-      <version>${pallet.version}</version>
+      <version>0.4.0-SNAPSHOT</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>

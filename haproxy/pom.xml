@@ -13,7 +13,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>etc-default</artifactId>
-      <version>${pallet.version}</version>
+      <version>0.4.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>

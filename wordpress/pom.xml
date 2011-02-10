@@ -13,12 +13,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>php</artifactId>
-      <version>${pallet.version}</version>
+      <version>0.4.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>mysql</artifactId>
-      <version>${pallet.version}</version>
+      <version>0.4.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>
