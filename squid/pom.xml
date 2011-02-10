@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crate-pom</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.4.0-beta-1</version>
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>squid</artifactId>
@@ -13,12 +13,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>iptables</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
+      <version>0.4.0-beta-1</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>automated-admin-user</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
+      <version>0.4.0-beta-1</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
