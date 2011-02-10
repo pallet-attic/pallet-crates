@@ -21,7 +21,11 @@
   ("gem" ~action ~(map-to-arg-string (first options)) ~package))
 
 (def rubygems-downloads
-     {"1.3.6"  ["http://rubyforge.org/frs/download.php/69365/rubygems-1.3.6.tgz"
+     {"1.4.1" ["http://rubyforge.org/frs/download.php/73779/rubygems-1.4.1.tgz"
+               "e915dbf79e22249d10c0fcf503a5adda"]
+      "1.4.0" ["http://rubyforge.org/frs/download.php/73763/rubygems-1.4.0.tgz"]
+      "1.3.7" ["http://rubyforge.org/frs/download.php/70696/rubygems-1.3.7.tgz"]
+      "1.3.6"  ["http://rubyforge.org/frs/download.php/69365/rubygems-1.3.6.tgz"
                 "789ca8e9ad1d4d3fe5f0534fcc038a0d"]
       "1.3.5" ["http://rubyforge.org/frs/download.php/60718/rubygems-1.3.5.tgz"
                 "6e317335898e73beab15623cdd5f8cff"]})
