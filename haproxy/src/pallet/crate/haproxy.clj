@@ -45,9 +45,8 @@
   (logging/info (format "INSTALL-HAPROXY %s" (request-map/os-family request)))
   (-> request
       (when->
-       (= :amzn-linux (request-map/os-family request))
-       (resource/execute-pre-phase
-        (package/add-epel :version "5-4")))
+       (#{:amzn-linux :centos} (request-map/os-family request))
+       (package/add-epel :version "5-4"))
       (package/package "haproxy")))
 
 (defmulti format-kv (fn format-kv-dispatch [k v & _] (class v)))
