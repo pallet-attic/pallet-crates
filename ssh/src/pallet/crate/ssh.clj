@@ -15,7 +15,8 @@
   (pallet.resource.package/packages
    request
    :yum ["openssh-clients" "openssh"]
-   :aptitude ["openssh-client" "openssh-server"]))
+   :aptitude ["openssh-client" "openssh-server"]
+   :pacman ["openssh"]))
 
 (defn service-name
   "SSH service name"
