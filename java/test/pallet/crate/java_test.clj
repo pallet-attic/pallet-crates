@@ -101,10 +101,10 @@
     (java :openjdk :jdk)
     (jce-policy-file "f" :content ""))))
 
+(def centos [{:os-family :centos}])
+
 (deftest live-test
-  (doseq [image [{:os-family :ubuntu :os-version-matches "10.04"}
-                 {:os-family :ubuntu :os-version-matches "10.10"}
-                 {:os-family :debian :os-version-matches "5.0.7"}]]
+  (doseq [image [(live-test/exclude-images live-test/*images* centos)]]
     (live-test/test-nodes
      [compute node-map node-types]
      {:java
@@ -122,7 +122,7 @@
 ;; To run this test you will need to download the Oracle Java rpm downloads in
 ;; the artifacts directory.
 (deftest centos-live-test
-  (doseq [image [{:os-family :centos :os-version-matches "5.5"}]]
+  (doseq [image [(live-test/filter-images live-test/*images* centos)]]
     (live-test/test-nodes
      [compute node-map node-types]
      {:java
