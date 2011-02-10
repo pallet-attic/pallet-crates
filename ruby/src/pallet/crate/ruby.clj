@@ -2,6 +2,7 @@
   "Installation of ruby from source"
   (:require
    [pallet.resource :as resource]
+   [pallet.request-map :as request-map]
    [pallet.stevedore :as stevedore]
    [pallet.resource.package :as package]
    [clojure.string :as string])
@@ -17,19 +18,24 @@
 (stevedore/defimpl ruby-version :default []
   (ruby "--version" "|" cut "-f2" "-d' '"))
 
-(def src-packages ["zlib-devel"  "gcc" "gcc-c++" "make"
-                   "curl-devel" "expat-devel" "gettext-devel"
-                   "libncurses5-dev" "libreadline-dev"
-                   ;; ubuntu 10.04
-                   "zlib1g" "zlib1g-dev" "zlibc"
-                   "libssl-dev"])
+(def src-packages
+  {:aptitude ["zlib-devel"  "gcc" "gcc-c++" "make"
+              "curl-devel" "expat-devel" "gettext-devel"
+              "libncurses5-dev" "libreadline-dev"
+              ;; ubuntu 10.04
+              "zlib1g" "zlib1g-dev" "zlibc"
+              "libssl-dev"]
+   :yum ["openssl-devel" "zlib-devel" "gcc" "make"
+         "curl-devel" "expat-devel" "gettext-devel" "readline-devel"
+         "ncurses-devel"]})
 
 (def version-regex
      {"1.8.7-p72" #"1.8.7.*patchlevel 72"})
 
 (def version-md5
      {"1.8.7-p72" "5e5b7189674b3a7f69401284f6a7a36d"
-      "1.8.7-p299" "43533980ee0ea57381040d4135cf9677"})
+      "1.8.7-p299" "43533980ee0ea57381040d4135cf9677"
+      "1.8.7-p330" "50a49edb787211598d08e756e733e42e"})
 
 (defn ftp-path [tarfile]
   (cond
@@ -46,7 +52,7 @@
            tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
        (->
         request
-        (for-> [p src-packages]
+        (for-> [p (src-packages (request-map/packager request))]
           (package p))
         (remote-file
          tarpath :url (ftp-path tarfile) :md5 (version-md5 version))
