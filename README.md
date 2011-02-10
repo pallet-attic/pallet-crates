@@ -1,5 +1,3 @@
-![pallet logo](https://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
-
 [Pallet](https://github.com/hugoduncan/pallet) is used
 to provision and maintain compute nodes, and aims to solve the problem of
 providing a consistently configured running image across a range of clouds.  It
@@ -35,4 +33,4 @@ Licensed under [EPL](http://www.eclipse.org/legal/epl-v10.html)
 
 [Contributors](https://www.ohloh.net/p/pallet-clj/contributors)
 
-Copyright 2010 Hugo Duncan.
+Copyright 2010, 2011 Hugo Duncan.
