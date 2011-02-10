@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crate-pom</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.4.1-SNAPSHOT</version>
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>pallet-crates-standalone</artifactId>
@@ -19,252 +19,252 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>automated-admin-user</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>bzr</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>cassandra</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>chef</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>cloudkick</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>couchdb</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>crontab</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>cruise-control-rb</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>etc-default</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>etc-hosts</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>ganglia</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>git</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>github</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>gpg</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>haproxy</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>hudson</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>iozone</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>iptables</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>java</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>jetty</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>maven</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>monit</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>mysql</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>nagios</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>nagios-config</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>nginx</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>node-js</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>package-builder</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>php</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>postfix</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>postgres</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>public-dns-if-no-nameserver</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>rabbitmq</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>resolv</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>ruby</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>rubygems</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>sphinx</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>splunk</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>squeak</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>ssh</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>ssh-key</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>sudoers</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>squid</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>syslog-ng</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>tomcat</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>upstart</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>vpnc</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>wordpress</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>zeromq</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>zookeeper</artifactId>
-              <version>${pallet.version}</version>
+              <version>0.4.0-SNAPSHOT</version>
             </artifactItem>
           </artifactItems>
         </configuration>

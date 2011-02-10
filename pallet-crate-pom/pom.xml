@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.4.0-beta-1</version>
     <relativePath>../../pallet-pom</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet-crate-pom</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
+  <version>0.4.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Pallet crates parent module</name>
   <url>http://github.com/pallet/pallet-crates</url>
@@ -82,7 +82,7 @@
     <dependency>
       <groupId>vmfest</groupId>
       <artifactId>vmfest</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.1.0</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
@@ -112,13 +112,13 @@
       <properties>
         <pallet.test.service-name>live-test</pallet.test.service-name>
         <pallet.test.cleanup-nodes>true</pallet.test.cleanup-nodes>
-        <pallet.test.image-list></pallet.test.image-list>
+        <pallet.test.image-list />
       </properties>
     </profile>
   </profiles>
 
   <properties>
-    <pallet.version>0.4.0-SNAPSHOT</pallet.version>
+    <pallet.version>0.4.0-beta-1</pallet.version>
     <jclouds.version>1.0-beta-8</jclouds.version>
   </properties>
 
