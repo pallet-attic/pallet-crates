@@ -1,4 +1,14 @@
 (ns pallet.crate.nagios-config
+  "Configures nodes to be monitored by nagios.
+
+   `service` and `command` configure the nagios server to monitor the node
+   against which they are executed.
+
+   Some higher level configuration functions are provided for http monitoring.
+
+   nrpe agent configuration is also supported.
+
+   Tested on ubuntu 10.04"
   (:require
    [pallet.resource :as resource]
    [pallet.argument :as argument]
@@ -48,13 +58,15 @@
                     (format "allowed_hosts=%s" server)}))))
 
 (defn nrpe-client-port
-  "Open the nrpe client port to the nagios server ip"
+  "Open the nrpe client port to the nagios server ip.  Used on the nagios server
+  node to allow reporting via nrpe clients on monitored nodes."
   [request]
   (-> request
       (when-let-> [server (parameter/get-for request [:nagios :server :ip] nil)]
         (iptables/iptables-accept-port 5666 "tcp" :source server))))
 
 (defn nrpe-check-load
+  "Configure the nrpe check_load plugin."
   [request]
   (service
    request
@@ -63,6 +75,7 @@
     :service_description  "Current Load"}))
 
 (defn nrpe-check-users
+  "Configure the nrpe check_users plugin."
   [request]
   (service
    request
@@ -71,6 +84,8 @@
     :service_description  "Current Users"}))
 
 (defn nrpe-check-disk
+  "Configure the nrpe check_disk plugin.
+   This checks the hda1 device."
   [request]
   (service
    request
@@ -79,6 +94,7 @@
     :service_description  "Root Disk"}))
 
 (defn nrpe-check-total-procs
+  "Configure the nrpe check_total_procs plugin."
   [request]
   (service
    request
@@ -87,6 +103,7 @@
     :service_description  "Total Processes"}))
 
 (defn nrpe-check-zombie-procs
+  "Configure the nrpe check_zombie_procs plugin."
   [request]
   (service
    request
@@ -94,19 +111,21 @@
     :check_command "check_nrpe_1arg!check_zombie_procs"
     :service_description  "Zombie Processes"}))
 
-(def check-http-options
+(def ^{:private true :doc "List of valid options for check_http"}
+  check-http-options
   #{:port :ssl :use-ipv4 :use-ipv6 :timeout :no-body :url
     :expect :string :method :certificate})
 
-(defn dissoc-keys
+(defn- dissoc-keys
   [m keys]
   (apply dissoc m keys))
 
 (defn monitor-http
-  "Configure nagios monitoring of https certificate"
-  [request
-   & {:keys [port ssl use-ipv4 use-ipv6 timeout no-body url expect string
-             method]
+  "Declare that a node's http service should be monitored by a nagios server.
+   Uses the nagios `check_http` plugin to perform the checking, and options are
+   passed to the plugin."
+  [request & {:keys [port ssl use-ipv4 use-ipv6 timeout
+   no-body url expect string method]
       :or {timeout 10}
       :as options}]
   (let [cmd (str
@@ -141,8 +160,11 @@
            (assoc :check_command cmd)))))))
 
 (defn monitor-https-certificate
-  "Configure nagios monitoring of https certificate"
-  [request & {:keys [port ssl use-ipv4 use-ipv6 timeout certificate]
+  "Declare that a node's https certificate should be monitored by a nagios
+   server.  Uses the nagios `check_http` plugin to perform the checking, and
+   options are passed to the plugin."
+  [request & {:keys [port ssl use-ipv4
+   use-ipv6 timeout certificate]
               :or {timeout 10 certificate 14}
               :as options}]
   (let [cmd (str

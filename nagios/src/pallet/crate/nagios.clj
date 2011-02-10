@@ -1,4 +1,16 @@
 (ns pallet.crate.nagios
+  "Crate to install and configure nagios 3.
+
+  `nagios` installs nagios from packages. Functions are provided for generating
+  the nagios configuration files.
+
+  See the `nagios-config` crate for configuring nodes to be monitored by nagios.
+
+  It is intended that the nagios server node and all montiored nodes are
+  specified in any `lift` or `converge` operation used to configure any of these
+  nodes.
+
+  Tested on ubuntu 10.04"
   (:require
    [pallet.compute :as compute]
    [pallet.resource :as resource]
