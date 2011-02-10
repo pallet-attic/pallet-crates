@@ -217,6 +217,11 @@
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
+      <artifactId>squid</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
       <artifactId>sudoers</artifactId>
       <version>${pallet.version}</version>
     </dependency>

@@ -228,6 +228,11 @@
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
+              <artifactId>squid</artifactId>
+              <version>${pallet.version}</version>
+            </artifactItem>
+            <artifactItem>
+              <groupId>org.cloudhoist</groupId>
               <artifactId>syslog-ng</artifactId>
               <version>${pallet.version}</version>
             </artifactItem>
@@ -320,6 +325,7 @@
             <sourceDirectory>../squeak/src</sourceDirectory>
             <sourceDirectory>../ssh/src</sourceDirectory>
             <sourceDirectory>../ssh-key/src</sourceDirectory>
+            <sourceDirectory>../squid/src</sourceDirectory>
             <sourceDirectory>../sudoers/src</sourceDirectory>
             <sourceDirectory>../syslog-ng/src</sourceDirectory>
             <sourceDirectory>../tomcat/src</sourceDirectory>
@@ -371,6 +377,7 @@
             <testSourceDirectory>../squeak/test</testSourceDirectory>
             <testSourceDirectory>../ssh/test</testSourceDirectory>
             <testSourceDirectory>../ssh-key/test</testSourceDirectory>
+            <testSourceDirectory>../squid/test</testSourceDirectory>
             <testSourceDirectory>../sudoers/test</testSourceDirectory>
             <testSourceDirectory>../syslog-ng/test</testSourceDirectory>
             <testSourceDirectory>../tomcat/test</testSourceDirectory>

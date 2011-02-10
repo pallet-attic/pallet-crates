@@ -79,6 +79,7 @@
         <module>squeak</module>
         <module>ssh</module>
         <module>ssh-key</module>
+        <module>squid</module>
         <module>sudoers</module>
         <module>syslog-ng</module>
         <module>tomcat</module>
@@ -167,6 +168,7 @@
               <param>ssh/src</param>
               <param>ssh-key/src</param>
               <param>sudoers/src</param>
+              <param>squid/src</param>
               <param>syslog-ng/src</param>
               <param>tomcat/src</param>
               <param>upstart/src</param>
