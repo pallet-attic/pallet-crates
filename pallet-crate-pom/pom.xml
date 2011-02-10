@@ -109,13 +109,17 @@
           </plugin>
         </plugins>
       </build>
+      <properties>
+        <pallet.test.service-name>live-test</pallet.test.service-name>
+        <pallet.test.cleanup-nodes>true</pallet.test.cleanup-nodes>
+        <pallet.test.image-list></pallet.test.image-list>
+      </properties>
     </profile>
   </profiles>
 
   <properties>
     <pallet.version>0.4.0-SNAPSHOT</pallet.version>
     <jclouds.version>1.0-beta-8</jclouds.version>
-    <pallet.test.service-name>live-test</pallet.test.service-name>
   </properties>
 
 </project>
