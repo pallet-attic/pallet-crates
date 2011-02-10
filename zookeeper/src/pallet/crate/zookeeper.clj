@@ -159,7 +159,7 @@
   "Configure zookeeper instance"
   [request & {:keys [dataDir tickTime clientPort initLimit syncLimit dataLogDir
                      electionPort quorumPort]
-              :or {quorumPort 2888 electionPort 3888}
+              :or {client-port 2181 quorumPort 2888 electionPort 3888}
               :as options}]
   (->
    request
