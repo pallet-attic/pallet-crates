@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crate-pom</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.4.0</version>
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>haproxy</artifactId>
@@ -13,7 +13,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>etc-default</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
+      <version>0.4.0</version>
     </dependency>
   </dependencies>
 </project>
