@@ -6,6 +6,7 @@
    [pallet.live-test :as live-test]
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.package :as package]
    [pallet.script :as script]
@@ -104,25 +105,33 @@
 (def centos [{:os-family :centos}])
 
 (deftest live-test
-  (doseq [image [(live-test/exclude-images live-test/*images* centos)]]
+  (doseq [image (live-test/exclude-images live-test/*images* centos)]
     (live-test/test-nodes
      [compute node-map node-types]
      {:java
       {:image image
        :count 1
        :phases {:bootstrap (resource/phase
+                            (package/minimal-packages)
+                            (package/package-manager :update)
                             (automated-admin-user/automated-admin-user))
                 :configure (resource/phase (java :sun))
                 :verify (resource/phase
                          (exec-script/exec-checked-script
                           "check java installed"
-                          (java -version)))}}}
+                          (java -version))
+                 (exec-script/exec-checked-script
+                  "check java installed under java home"
+                  ("test" (file-exists? (str (java-home) "/bin/java"))))
+                 (exec-script/exec-checked-script
+                  "check javac installed under jdk home"
+                  ("test" (file-exists? (str (jdk-home) "/bin/javac")))))}}}
      (core/lift (:java node-types) :phase :verify :compute compute))))
 
 ;; To run this test you will need to download the Oracle Java rpm downloads in
 ;; the artifacts directory.
 (deftest centos-live-test
-  (doseq [image [(live-test/filter-images live-test/*images* centos)]]
+  (doseq [image (live-test/filter-images live-test/*images* centos)]
     (live-test/test-nodes
      [compute node-map node-types]
      {:java
@@ -130,6 +139,10 @@
        :count 1
        :phases
        {:bootstrap (resource/phase
+                    (pallet.resource.package/package-manager
+                     :configure :proxy "http://192.168.2.37:3128")
+                    (package/minimal-packages)
+                    (package/package-manager :update)
                     (automated-admin-user/automated-admin-user))
         :configure (resource/phase
                     (remote-file/remote-file
@@ -140,5 +153,11 @@
         :verify (resource/phase
                  (exec-script/exec-checked-script
                   "check java installed"
-                  (java -version)))}}}
+                  (java -version))
+                 (exec-script/exec-checked-script
+                  "check java installed under java home"
+                  ("test" (file-exists? (str (java-home) "/bin/java"))))
+                 (exec-script/exec-checked-script
+                  "check javac installed under jdk home"
+                  ("test" (file-exists? (str (jdk-home) "/bin/javac")))))}}}
      (core/lift (:java node-types) :phase :verify :compute compute))))

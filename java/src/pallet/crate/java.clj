@@ -110,6 +110,22 @@
               (for-> [component components]
                      (vc vendor component)))))))
 
+(script/defscript java-home [])
+(stevedore/defimpl java-home :default []
+  @("dirname" @("dirname" @("readlink" -f @("which" java)))))
+(stevedore/defimpl java-home [#{:aptitude}] []
+  @("dirname" @("dirname" @("update-alternatives" --list java))))
+(stevedore/defimpl java-home [#{:darwin :os-x}] []
+   @JAVA_HOME)
+
+(script/defscript jdk-home [])
+(stevedore/defimpl jdk-home :default []
+  @("dirname" @("dirname" @("readlink" -f @("which" javac)))))
+(stevedore/defimpl jdk-home [#{:aptitude}] []
+  @("dirname" @("dirname" @("update-alternatives" --list javac))))
+(stevedore/defimpl jdk-home [#{:darwin :os-x}] []
+   @JAVA_HOME)
+
 (script/defscript jre-lib-security [])
 (stevedore/defimpl jre-lib-security :default []
   (str @(update-java-alternatives -l "|" cut "-d ' '" -f 3 "|" head -1)
