@@ -9,7 +9,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet-crate-pom</artifactId>
-  <version>0.4.0</version>
+  <version>0.4.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Pallet crates parent module</name>
   <url>http://github.com/pallet/pallet-crates</url>

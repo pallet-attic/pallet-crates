@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crate-pom</artifactId>
-    <version>0.4.0</version>
+    <version>0.4.1-SNAPSHOT</version>
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>squid</artifactId>
@@ -13,12 +13,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>iptables</artifactId>
-      <version>0.4.0</version>
+      <version>0.4.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>automated-admin-user</artifactId>
-      <version>0.4.0</version>
+      <version>0.4.1-SNAPSHOT</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
