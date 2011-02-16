@@ -3,10 +3,11 @@
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-directory :as remote-directory]
-   [pallet.crate.maven :as maven]
    [pallet.crate.git :as git]
-   [pallet.parameter :as parameter]
-   [pallet.crate.iptables :as iptables]))
+   [pallet.crate.iptables :as iptables]
+   [pallet.crate.java :as java]
+   [pallet.crate.maven :as maven]
+   [pallet.parameter :as parameter]))
 
 (def src-path "/opt/local/zeromq")
 (def md5s {})
@@ -60,17 +61,14 @@
     (cd "jzmq")
     (export (str "JAVA_HOME="
                  @(dirname @(dirname @(update-alternatives --list javac)))))
-    
+
     ("./autogen.sh")
     ("./configure")
     (make)
-
-    (make install)
-    (mvn ~(print-str "install:install-file -Dfile=/usr/local/share/java/zmq.jar"
-                     "-DgroupId=org.zeromq"
-                     "-DartifactId=zmq"
-                     (format "-Dversion=%s" version)
-                     "-Dpackaging=jar")))))
+    (make install) ; install the jni lib
+    ;; Install jar to local repo.
+    ;; We skip tests as pom isn't set up for configuring java.library.path
+    ("mvn" "-q" "install" "-Dmaven.test.skip=true"))))
 
 (defn iptables-accept
   "Accept zeromq connections, by default on port 5672"
