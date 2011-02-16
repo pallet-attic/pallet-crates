@@ -82,7 +82,7 @@
     <dependency>
       <groupId>vmfest</groupId>
       <artifactId>vmfest</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
