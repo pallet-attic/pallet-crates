@@ -1,17 +1,17 @@
 (ns pallet.crate.package-builder-test
   (:use pallet.crate.package-builder)
   (:require
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package])
+   [pallet.build-actions :as build-actions]
+   [pallet.action.package :as package])
   (:use clojure.test
         pallet.test-utils))
 
 (deftest simple-test
   []
-  (let [a {:tag :n :image {:packager :yum}}]
+  (let [a {:group-name :n :image {:packager :yum}}]
     (is
-     (build-resources
-      [:node-type a]
+     (build-actions/build-actions
+      {:server a}
       (yum-package-setup)
       (yum-mock-config "default"
        {:root "epel-5-i386"

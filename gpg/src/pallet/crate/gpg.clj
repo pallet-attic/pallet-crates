@@ -1,29 +1,29 @@
 (ns pallet.crate.gpg
   "Install gpg"
   (:require
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.user :as user]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script])
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore])
   (:use
    pallet.thread-expr))
 
 (defn gpg
   "Install from packages"
-  [request]
-  (package/package request "pgpgpg"))
+  [session]
+  (package/package session "pgpgpg"))
 
 (defn import-key
   "Import key. Content options are as for remote-file."
-  [request & {:keys [user] :as options}]
+  [session & {:keys [user] :as options}]
   (let [path "gpg-key-import"
-        user (or user (-> request :user :username))
-        home (stevedore/script (user-home ~user))
+        user (or user (-> session :user :username))
+        home (stevedore/script (~lib/user-home ~user))
         dir (str home "/.gnupg")]
     (->
-     request
+     session
      (directory/directory dir :mode "0700" :owner user)
      (apply->
       remote-file/remote-file

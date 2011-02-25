@@ -2,12 +2,12 @@
   "Crate for working with squeak, pharo and seaside.
    This is by not finished as yet."
   (:require
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.package :as package]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.file :as file]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.remote-directory :as remote-directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.directory :as directory]
+   [pallet.action.file :as file]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.remote-directory :as remote-directory]
    [pallet.crate.upstart :as upstart]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
@@ -433,9 +433,9 @@ Project uiProcess suspend.")
 #_
 (pallet.core/defnode a
   {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.phase/phase-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.phase/phase-fn
               (pallet.crate.squeak/squeak-vm)
               (pallet.crate.squeak/pharo)
               (pallet.crate.squeak/magma-server-image)

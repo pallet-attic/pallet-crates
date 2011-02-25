@@ -2,15 +2,15 @@
   "Create upstart daemon scripts"
   (:require
    [pallet.parameter :as parameter]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
    [clojure.string :as string]))
 
 (defn package
   "Install upstart from system package"
-  [request]
+  [session]
   (->
-   request
+   session
    (package/packages
     :yum ["upstart"]
     :aptitude ["upstart"])))
@@ -83,7 +83,7 @@
   "Define an upstart job.
     :start-on, :stop-on, :env, :export takes a sequency of strings.
     :limit takes a map of limit-resource and soft hard limit pairs as a string"
-  [request name &
+  [session name &
    {:keys [script exec
            pre-start-script post-start-script pre-stop-script post-stop-script
            pre-start-exec post-start-exec pre-stop-exec post-stop-exec
@@ -94,7 +94,7 @@
            console umask nice oom chroot chdir limit
            kill-timeout expect] :as options}]
   (->
-   request
+   session
    (remote-file/remote-file
     (format "/etc/init/%s.conf" name)
     :content (job-format options)

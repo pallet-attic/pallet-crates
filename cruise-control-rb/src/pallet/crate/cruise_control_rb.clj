@@ -1,18 +1,17 @@
 (ns pallet.crate.cruise-control-rb
  "Installation cruise-control.rb"
  (:require
+  [pallet.action :as action]
+  [pallet.action.directory :as directory]
+  [pallet.action.exec-script :as exec-script]
+  [pallet.action.file :as file]
+  [pallet.action.remote-file :as remote-file]
+  [pallet.action.service :as service]
+  [pallet.action.user :as user]
   [pallet.argument :as argument]
   [pallet.stevedore :as stevedore]
-  [pallet.resource :as resource]
   [pallet.template :as template]
-  [pallet.utils :as utils]
-  [pallet.resource.file :as file]
-  [pallet.resource.exec-script :as exec-script]
-  [pallet.resource.remote-file :as remote-file]
-  [pallet.resource.service :as service]
-  [pallet.resource.user :as user]
-  [pallet.resource.directory :as directory]
-  [pallet.resource.exec-script :as exec-script]))
+  [pallet.utils :as utils]))
 
 (def cruise-control-rb-downloads
      {"1.4.0" [ "http://rubyforge.org/frs/download.php/59598/cruisecontrol-1.4.0.tgz"
@@ -39,13 +38,13 @@
 (defn cruise-control-rb
   "Downloads and installs the specified version of cruisecontrol.rb.  Creates a
 cruiscontrol.rb init script."
-  ([request] (cruise-control-rb request "1.4.0"))
-  ([request version]
+  ([session] (cruise-control-rb session "1.4.0"))
+  ([session version]
      (let [info (cruise-control-rb-downloads version)
            basename (str "cruisecontrol-" version)
            tarfile (str basename ".tgz")
            tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
-       (-> request
+       (-> session
            (remote-file/remote-file
             tarpath :url (first info) :md5 (second info))
            (user/user
@@ -76,14 +75,12 @@ cruiscontrol.rb init script."
 
 (defn cruise-control-rb-init
   "Creates a cruiscontrol.rb init script."
-  [request]
+  [session]
   (service/init-script
-   request
+   session
    "cruisecontrol.rb"
    :content (utils/load-resource-url
-             (template/find-template
-              cruise-control-rb-init-script
-              (:node-type request)))
+             (template/find-template cruise-control-rb-init-script session))
    :literal true))
 
 (defn- project-path [project]
@@ -93,11 +90,11 @@ cruiscontrol.rb init script."
   "Add a cruise control.rb job.
 Options include:
   :branch name   -- specify the branch"
-  [request name repository-url
+  [session name repository-url
    & {:keys [action branch] :or {action :create} :as options}]
   (case action
     :create (exec-script/exec-checked-script
-             request
+             session
              "cruise-control-rb"
              (export ~(format "CRUISE_DATA_ROOT=%s" cruise-control-rb-data))
              (if-not (file-exists? ~(project-path name))
@@ -111,6 +108,6 @@ Options include:
                 ~(stevedore/option-args
                   (apply concat (dissoc options :action))))))
     :remove (directory/directory
-             request
+             session
              (project-path name)
              :action :remove :recursive true :force true)))

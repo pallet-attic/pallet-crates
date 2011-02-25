@@ -4,14 +4,13 @@
    [pallet.argument :as argument]
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.session :as session]
+   [pallet.action :as action]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
    [pallet.crate.etc-default :as etc-default]
-   [pallet.target :as target]
-   [clojure.string :as string]
    [clojure.contrib.logging :as logging]
+   [clojure.string :as string]
    clojure.set)
   (:use
    [clojure.contrib.core :only [-?>]]
@@ -41,11 +40,11 @@
 
 (defn install-package
   "Install HAProxy from packages"
-  [request]
-  (logging/info (format "INSTALL-HAPROXY %s" (request-map/os-family request)))
-  (-> request
+  [session]
+  (logging/debug (format "INSTALL-HAPROXY %s" (session/os-family session)))
+  (-> session
       (when->
-       (#{:amzn-linux :centos} (request-map/os-family request))
+       (#{:amzn-linux :centos} (session/os-family session))
        (package/add-epel :version "5-4"))
       (package/package "haproxy")))
 
@@ -101,14 +100,14 @@
       (format-kv k v " ")))))
 
 (defn merge-servers
-  [request options]
+  [session options]
   (let [options (update-in
                  options [:listen]
                  (fn [m]
                    (zipmap (map keyword (keys m)) (vals m))))
         apps (map keyword (keys (:listen options)))
-        tag (keyword (request-map/tag request))
-        srv-apps (-?> request :parameters :haproxy tag)
+        group-name (keyword (session/group-name session))
+        srv-apps (-?> session :parameters :haproxy group-name)
         app-keys (keys srv-apps)
         unconfigured (clojure.set/difference (set app-keys) (set apps))
         no-nodes (clojure.set/difference (set app-keys) (set apps))]
@@ -117,13 +116,13 @@
         (logging/warn
          (format
           "Unconfigured proxy %s %s"
-          tag app))))
+          group-name app))))
     (when (seq no-nodes)
       (doseq [app no-nodes]
         (logging/warn
          (format
           "Configured proxy %s %s with no servers"
-          tag app))))
+          group-name app))))
     (reduce
      #(update-in %1 [:listen (keyword (first %2)) :server]
                  (fn [servers]
@@ -139,19 +138,19 @@
    map where the keys are of the form \"name\" and contain an :server-address
    key with a string containing ip:port, and other keyword/value. Servers for
    each listen section can be declared with the proxied-by function."
-  [request
+  [session
    & {:keys [global defaults listen frontend backend]
               :as options}]
   (->
-   request
+   session
    (remote-file/remote-file
     conf-path
     :content (argument/delayed
-              [request]
+              [session]
               (let [combined (merge
                               {:global default-global
                                :defaults default-defaults}
-                              (merge-servers request options))]
+                              (merge-servers session options))]
                 (string/join
                  (map
                   config-section
@@ -167,29 +166,29 @@
 (defn proxied-by
   "Declare that a node is proxied by the given haproxy server.
 
-   (proxied-by request :haproxy :app1 :check true)."
-  [request proxy-tag proxy-group
+   (proxied-by session :haproxy :app1 :check true)."
+  [session proxy-group-name proxy-group
    & {:keys [server-port addr backup check cookie disabled fall id
              inter fastinter downinter maxqueue minconn port redir
              rise slowstart source track weight]
       :as options}]
   (->
-   request
+   session
    (parameter/update-for
-    [:haproxy (keyword proxy-tag) (keyword proxy-group)]
+    [:haproxy (keyword proxy-group-name) (keyword proxy-group)]
     (fn [v]
       (conj
        (or v [])
        (merge
         options
-        {:ip (request-map/target-ip request)
-         :name (request-map/safe-name request)}))))))
+        {:ip (session/target-ip session)
+         :name (session/safe-name session)}))))))
 
 #_
 (pallet.core/defnode haproxy
   {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.phase/phase-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.phase/phase-fn
               (pallet.crate.haproxy/install-package)
               (pallet.crate.haproxy/configure)))

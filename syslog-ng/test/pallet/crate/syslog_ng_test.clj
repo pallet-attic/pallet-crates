@@ -3,7 +3,7 @@
   (:use clojure.test
         pallet.test-utils)
   (:require
-   [pallet.resource :as resource]
+   [pallet.build-actions :as build-actions]
    [pallet.test-utils :as test-utils]))
 
 (deftest property-fmt-test
@@ -42,8 +42,8 @@
   (is (= "a {\nb(c);\n};\n" (configure-block "a" {:b "c"}))))
 
 (deftest invoke-test
-  (is (test-utils/build-resources
-       [:target-node (test-utils/make-node "tag" :id "id" :ip "1.2.3.4")]
+  (is (build-actions/build-actions
+       {:server {:node (test-utils/make-node "tag" :id "id" :ip "1.2.3.4")}}
        (install)
        (set-server-ip)
        (iptables-accept))))

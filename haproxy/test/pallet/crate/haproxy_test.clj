@@ -2,9 +2,9 @@
   (:use pallet.crate.haproxy)
   (:require
    [pallet.compute :as compute]
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.session :as session]
+   [pallet.build-actions :as build-actions]
+   [pallet.action.remote-file :as remote-file]
    [pallet.crate.etc-default :as etc-default]
    [pallet.test-utils :as test-utils])
   (:use clojure.test))
@@ -27,14 +27,13 @@
     (is (= {:parameters
             {:haproxy
              {:tag1
-              {:app1 [{:name (format "tag%s" (request-map/safe-id
+              {:app1 [{:name (format "tag%s" (session/safe-id
                                               (compute/id node)))
                        :ip "1.2.3.4"}]}}},
-            :node-type {:tag :tag},
-            :target-node node}
+            :server {:group-name :tag :node node :node-id :tag-1-2-3-4}}
            (proxied-by
-            {:node-type {:tag :tag}
-             :target-node node}
+            (test-utils/target-server
+             :group-name :tag :node node :node-id (keyword (compute/id node)))
             :tag1 :app1)))))
 
 
@@ -48,8 +47,7 @@
              {:haproxy
               {:tag1
                {:app1 [{:name "tag", :ip "1.2.3.4" :check true}]}}}
-             :node-type {:tag :tag1}
-             :target-node node}
+             :server {:group-name :tag1 :node node}}
             {:listen
              {:app1 {:server-address "0.0.0.0:80"
                      :balance "round-robin"}}})))
@@ -73,27 +71,31 @@
           "server tag 1.2.3.4 name tag \n"
           "balance round-robin\n")
          (apply str
-          (map
-           #'pallet.crate.haproxy/config-section
-           {:listen {:app1 {:server ["tag 1.2.3.4 name tag "]
-                            :server-address "0.0.0.0:80"
-                            :balance "round-robin"}}})))))
+                (map
+                 #'pallet.crate.haproxy/config-section
+                 {:listen {:app1 {:server ["tag 1.2.3.4 name tag "]
+                                  :server-address "0.0.0.0:80"
+                                  :balance "round-robin"}}})))))
 
 (deftest configure-test
   (is (=
        (first
-        (test-utils/build-resources
-         [:node-type {:image {:os-family :ubuntu} :tag :tag}
-          :target-node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
+        (build-actions/build-actions
+         {:server {:image {:os-family :ubuntu}
+                   :group-name :tag
+                   :node (test-utils/make-node
+                          "tag" :public-ips ["1.2.3.4"])}}
          (remote-file/remote-file
           "/etc/haproxy/haproxy.cfg"
           :content "global\nlog 127.0.0.1 local0\nlog 127.0.0.1 local1 notice\nmaxconn 4096\nuser haproxy\ngroup haproxy\ndaemon\ndefaults\nmode http\nlisten app 0.0.0.0:80\nserver h1 1.2.3.4:80 weight 1 maxconn 50 check\nserver h2 1.2.3.5:80 weight 1 maxconn 50 check\n"
           :literal true)
          (etc-default/write "haproxy" :ENABLED 1)))
        (first
-        (test-utils/build-resources
-         [:node-type {:image {:os-family :ubuntu} :tag :tag}
-          :target-node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
+        (build-actions/build-actions
+         {:server {:image {:os-family :ubuntu}
+                   :group-name :tag
+                   :node (test-utils/make-node
+                          "tag" :public-ips ["1.2.3.4"])}}
          (configure
           :listen {:app
                    {:server-address "0.0.0.0:80"
@@ -102,13 +104,15 @@
           :defaults {:mode "http"}))))))
 
 (deftest invocation-test
-  (is (test-utils/build-resources
-       [:node-type {:image {:os-family :ubuntu} :tag :tag}
-        :target-node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
-       (install-package)
-       (configure
-        :listen {:app
-                 {:server-address "0.0.0.0:80"
-                  :server ["h1 1.2.3.4:80 weight 1 maxconn 50 check"
-                           "h2 1.2.3.5:80 weight 1 maxconn 50 check"]}})
-       (proxied-by :tag :app))))
+  (let [node (test-utils/make-node "tag" :ip "1.2.3.4")]
+    (is (build-actions/build-actions
+         {:server {:image {:os-family :ubuntu}
+                   :group-name :tag :node node
+                   :node-id (keyword (compute/id node))}}
+         (install-package)
+         (configure
+          :listen {:app
+                   {:server-address "0.0.0.0:80"
+                    :server ["h1 1.2.3.4:80 weight 1 maxconn 50 check"
+                             "h2 1.2.3.5:80 weight 1 maxconn 50 check"]}})
+         (proxied-by :tag :app)))))

@@ -13,27 +13,24 @@
 
    The tomcat service may be controlled via `init-service`."
   (:refer-clojure :exclude [alias])
-  (:use
-   [pallet.stevedore :only [script]]
-   [pallet.resource.file :only [heredoc file rm]]
-   [pallet.template :only [find-template]]
-   [pallet.enlive :only [xml-template xml-emit transform-if deffragment elt]]
-   [clojure.contrib.prxml :only [prxml]]
-   pallet.thread-expr)
   (:require
-   [pallet.resource :as resource]
-   [pallet.core :as core]
+   [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
+   [pallet.enlive :as enlive]
    [pallet.parameter :as parameter]
-   [pallet.resource.package :as package]
-   [pallet.resource.file :as file]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.service :as service]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.request-map :as request-map]
-   [pallet.target :as target]
-   [net.cgrand.enlive-html :as enlive]
-   [clojure.contrib.string :as string]))
+   [pallet.session :as session]
+   [pallet.stevedore :as stevedore]
+   [pallet.script.lib :as lib]
+   [pallet.template :as template]
+   [pallet.thread-expr :as thread-expr]
+   [net.cgrand.enlive-html :as enlive-html]
+   [clojure.contrib.prxml :as prxml]
+   [clojure.string :as string]))
 
 (def
   ^{:doc "Baseline configuration file path" :private true}
@@ -85,25 +82,25 @@
    - :service    the name of the init service installed by the package
    - :base-dir   the install base used by the package
    - :config-dir the directory used for the configuration files"
-  [request & {:keys [user group version package service
+  [session & {:keys [user group version package service
                      base-dir config-dir] :as options}]
   (let [package (or
                  package
                  (version-package version version)
-                 (package-name (request-map/os-family request))
-                 (package-name (:target-packager request)))
-        tomcat-user (tomcat-user-group-name (:target-packager request))
+                 (package-name (session/os-family session))
+                 (package-name (session/packager session)))
+        tomcat-user (tomcat-user-group-name (session/packager session))
         user (or user tomcat-user)
         group (or group tomcat-user)
         service (or service package)
         base-dir (or base-dir (str tomcat-base package "/"))
         config-dir (str tomcat-config-root package "/")]
-    (-> request
-        (when->
-         (and (= :centos (request-map/os-family request))
-              (re-matches #"5\.[0-5]" (request-map/os-version request)))
+    (-> session
+        (thread-expr/when->
+         (and (= :centos (session/os-family session))
+              (re-matches #"5\.[0-5]" (session/os-version session)))
          (package/add-jpackage :releasever "5.0"))
-        (when-> (= :install (:action options :install))
+        (thread-expr/when-> (= :install (:action options :install))
                 (parameter/assoc-for-target
                  [:tomcat :base] base-dir
                  [:tomcat :config-path] config-dir
@@ -111,10 +108,10 @@
                  [:tomcat :group] group
                  [:tomcat :service] service))
         (package/package-manager :update)
-        (apply->
+        (thread-expr/apply->
          package/package package
          (apply concat options))
-        (when-> (:purge options)
+        (thread-expr/when-> (:purge options)
                 (directory/directory
                  tomcat-base :action :delete :recursive true :force true)))))
 
@@ -129,22 +126,22 @@
    Specify `:if-config-changed true` to make actions conditional on a change in
    configuration.
 
-   Other options are as for `pallet.resource.service/service`. The service
+   Other options are as for `pallet.action.service/service`. The service
    name is looked up in the request parameters."
-  [request & {:keys [action if-config-changed if-flag] :as options}]
-  (let [service (parameter/get-for-target request [:tomcat :service])
+  [session & {:keys [action if-config-changed if-flag] :as options}]
+  (let [service (parameter/get-for-target session [:tomcat :service])
         options (if if-config-changed
                   (assoc options :if-flag tomcat-config-changed-flag)
                   options)]
-    (-> request (apply-map-> service/service service options))))
+    (-> session (thread-expr/apply-map-> service/service service options))))
 
 (defn undeploy
   "Removes the named webapp directories, and any war files with the same base
    names."
-  [request & app-names]
-  (let [tomcat-base (parameter/get-for-target request [:tomcat :base])]
-    (-> request
-        (for-> [app-name app-names
+  [session & app-names]
+  (let [tomcat-base (parameter/get-for-target session [:tomcat :base])]
+    (-> session
+        (thread-expr/for-> [app-name app-names
                 :let [app-name (or app-name "ROOT")
                       app-name (if (string? app-name) app-name (name app-name))
                       exploded-app-dir (str tomcat-base "webapps/" app-name)]]
@@ -153,11 +150,11 @@
 
 (defn undeploy-all
   "Removes all deployed war file and exploded webapp directories."
-  [request]
-  (let [tomcat-base (parameter/get-for-target request [:tomcat :base])]
+  [session]
+  (let [tomcat-base (parameter/get-for-target session [:tomcat :base])]
     (exec-script/exec-script
-     request
-     (rm ~(str tomcat-base "webapps/*") ~{:r true :f true}))))
+     session
+     (~lib/rm ~(str tomcat-base "webapps/*") :r true :f true))))
 
 (defn deploy
   "Copies a .war file to the tomcat server under webapps/${app-name}.war.  An
@@ -167,31 +164,31 @@
 
    Other Options:
      :clear-existing true -- removes the existing exploded ${app-name} directory"
-  [request app-name & {:as opts}]
-  (let [tomcat-base (parameter/get-for-target request [:tomcat :base])
-        tomcat-user (parameter/get-for-target request [:tomcat :owner])
-        tomcat-group (parameter/get-for-target request [:tomcat :group])
+  [session app-name & {:as opts}]
+  (let [tomcat-base (parameter/get-for-target session [:tomcat :base])
+        tomcat-user (parameter/get-for-target session [:tomcat :owner])
+        tomcat-group (parameter/get-for-target session [:tomcat :group])
         exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")
         options (merge
                  {:owner tomcat-user :group tomcat-group :mode 600}
                  (select-keys opts remote-file/all-options))]
     (->
-     request
-     (apply->
+     session
+     (thread-expr/apply->
       remote-file/remote-file
       deployed-warfile
       (apply concat options))
      ;; (when-not-> (:clear-existing opts)
      ;;  ;; if we're not removing an existing, try at least to make sure
      ;;  ;; that tomcat has the permissions to explode the war
-     ;;  (apply->
+     ;;  (thread-expr/apply->
      ;;   directory/directory
      ;;   exploded-app-dir
      ;;   (apply concat
      ;;          (merge {:owner tomcat-user :group tomcat-group :recursive true}
      ;;                 (select-keys options [:owner :group :recursive])))))
-     (when-> (:clear-existing opts)
+     (thread-expr/when-> (:clear-existing opts)
              (directory/directory exploded-app-dir :action :delete)))))
 
 (defn- output-grants
@@ -209,14 +206,14 @@
      number - determines sequence i which policies are applied
      name - a name for the policy
      grants - a map from codebase to sequence of permissions"
-  [request number name grants
+  [session number name grants
    & {:keys [action] :or {action :create} :as options}]
   (let [tomcat-config-root (parameter/get-for-target
-                            request [:tomcat :config-path])
+                            session [:tomcat :config-path])
         policy-file (str tomcat-config-root "policy.d/" number name ".policy")]
     (case action
       :create (->
-               request
+               session
                (directory/directory
                 (str tomcat-config-root "policy.d"))
                (remote-file/remote-file
@@ -225,31 +222,31 @@
                 :literal true
                 :flag-on-changed tomcat-config-changed-flag))
       :remove (file/file
-               request policy-file :action :delete
+               session policy-file :action :delete
                :flag-on-changed tomcat-config-changed-flag))))
 
 (defn application-conf
   "Configure tomcat applications.
    name - a name for the policy
    content - an xml application context"
-  [request name content & {:keys [action] :or {action :create} :as options}]
+  [session name content & {:keys [action] :or {action :create} :as options}]
   (let [tomcat-config-root (parameter/get-for-target
-                            request [:tomcat :config-path])
+                            session [:tomcat :config-path])
         app-path (str tomcat-config-root "Catalina/localhost/")
         app-file (str app-path name ".xml")]
     (case action
       :create (->
-               request
+               session
                (directory/directory app-path)
                (remote-file/remote-file
                 app-file :content content :literal true
                 :flag-on-changed tomcat-config-changed-flag))
-      :remove (file/file request app-file :action :delete))))
+      :remove (file/file session app-file :action :delete))))
 
 (defn users*
   [roles users]
   (with-out-str
-    (prxml
+    (prxml/prxml
      [:decl {:version "1.1"}]
      [:tomcat-users
       (map #(vector :role {:rolename %}) roles)
@@ -268,15 +265,14 @@
         (recur (nnext args) (merge users {(first args) (fnext args)}) roles))
       [roles users])))
 
-(resource/defcollect user
+(action/def-collected-action user
   "Configure tomcat users. Options are:
      :role rolename
      username {:password \"pw\" :roles [\"role1\" \"role 2\"]}"
-  {:use-arglist [request & {:keys [role] :as options}]}
-  (apply-tomcat-user
-   [request args]
-   (let [[roles users] (merge-tomcat-users (apply concat args))]
-     (users* roles users))))
+  {:arglists '([session & {:keys [role] :as options}])}
+  [session args]
+  (let [[roles users] (merge-tomcat-users (apply concat args))]
+    (users* roles users)))
 
 (def listener-classnames
      {:apr-lifecycle
@@ -337,103 +333,103 @@
                           (and (keyword? k) (namespace k)))
                   (apply dissoc m dissoc-keys))))
 
-(deffragment server-resources-transform
+(enlive/deffragment server-resources-transform
   [global-resources]
-  [:Environment] (transform-if (global-resources ::environment) nil)
-  [:Resource] (transform-if (global-resources ::resource) nil)
-  [:Transaction] (transform-if (global-resources ::transaction) nil)
+  [:Environment] (enlive/transform-if (global-resources ::environment) nil)
+  [:Resource] (enlive/transform-if (global-resources ::resource) nil)
+  [:Transaction] (enlive/transform-if (global-resources ::transaction) nil)
   [:GlobalNamingResources]
-  (enlive/do-> ; ensure we have elements to configure
-   (transform-if (global-resources ::environment)
-                 (enlive/prepend (elt :Environment)))
-   (transform-if (global-resources ::resource)
-                 (enlive/prepend (elt ::resource)))
-   (transform-if (global-resources ::transaction)
-                 (enlive/prepend (elt :Transaction))))
+  (enlive-html/do-> ; ensure we have elements to configure
+   (enlive/transform-if (global-resources ::environment)
+                 (enlive-html/prepend (enlive/elt :Environment)))
+   (enlive/transform-if (global-resources ::resource)
+                 (enlive-html/prepend (enlive/elt ::resource)))
+   (enlive/transform-if (global-resources ::transaction)
+                 (enlive-html/prepend (enlive/elt :Transaction))))
   [:Environment]
-  (transform-if (global-resources ::environment)
-   (enlive/clone-for [environment (global-resources ::environment)]
-                     (apply enlive/set-attr (flatten-map environment))))
+  (enlive/transform-if (global-resources ::environment)
+   (enlive-html/clone-for [environment (global-resources ::environment)]
+                     (apply enlive-html/set-attr (flatten-map environment))))
   [:Resource]
-  (transform-if (global-resources ::resource)
-   (enlive/clone-for [resource (global-resources ::resource)]
-                     (apply enlive/set-attr (flatten-map resource))))
+  (enlive/transform-if (global-resources ::resource)
+   (enlive-html/clone-for [resource (global-resources ::resource)]
+                     (apply enlive-html/set-attr (flatten-map resource))))
   [:Transaction]
-  (transform-if (global-resources ::transaction)
-   (enlive/clone-for [transaction (global-resources ::transaction)]
-                     (apply enlive/set-attr (flatten-map transaction)))))
+  (enlive/transform-if (global-resources ::transaction)
+   (enlive-html/clone-for [transaction (global-resources ::transaction)]
+                     (apply enlive-html/set-attr (flatten-map transaction)))))
 
-(deffragment engine-transform
+(enlive/deffragment engine-transform
   [engine]
-  [:Host] (transform-if (engine ::host) nil)
-  [:Valve] (transform-if (engine ::valve) nil)
-  [:Realm] (transform-if (engine ::realm) nil)
+  [:Host] (enlive/transform-if (engine ::host) nil)
+  [:Valve] (enlive/transform-if (engine ::valve) nil)
+  [:Realm] (enlive/transform-if (engine ::realm) nil)
   [:Engine]
-  (enlive/do-> ; ensure we have elements to configure
-   (transform-if (engine ::host)
-                 (enlive/prepend (elt :Host)))
-   (transform-if (engine ::valve)
-                 (enlive/prepend (elt :Valve)))
-   (transform-if (engine ::realm)
-                 (enlive/prepend (elt :Realm))))
+  (enlive-html/do-> ; ensure we have elements to configure
+   (enlive/transform-if (engine ::host)
+                 (enlive-html/prepend (enlive/elt :Host)))
+   (enlive/transform-if (engine ::valve)
+                 (enlive-html/prepend (enlive/elt :Valve)))
+   (enlive/transform-if (engine ::realm)
+                 (enlive-html/prepend (enlive/elt :Realm))))
   [:Host]
-  (transform-if (engine ::host)
-                (enlive/clone-for
+  (enlive/transform-if (engine ::host)
+                (enlive-html/clone-for
                  [host (engine ::host)]
-                 (enlive/do->
-                  (apply enlive/set-attr (flatten-map host))
+                 (enlive-html/do->
+                  (apply enlive-html/set-attr (flatten-map host))
                   (engine-transform (engine ::host)))))
   [:Valve]
-  (transform-if (engine ::valve)
-                (enlive/clone-for
+  (enlive/transform-if (engine ::valve)
+                (enlive-html/clone-for
                  [valve (engine ::valve)]
-                 (apply enlive/set-attr (flatten-map valve))))
+                 (apply enlive-html/set-attr (flatten-map valve))))
   [:Realm]
-  (transform-if (engine ::realm)
-                (enlive/set-attr (flatten-map (engine ::realm)))))
+  (enlive/transform-if (engine ::realm)
+                (enlive-html/set-attr (flatten-map (engine ::realm)))))
 
-(deffragment service-transform
+(enlive/deffragment service-transform
   [service]
   [:Connector]
-  (enlive/clone-for [connector (service ::connector)]
-                    (apply enlive/set-attr (flatten-map connector)))
+  (enlive-html/clone-for [connector (service ::connector)]
+                    (apply enlive-html/set-attr (flatten-map connector)))
   [:Engine]
-  (transform-if (service ::engine)
-                (enlive/do->
-                 (apply enlive/set-attr (flatten-map (service ::engine)))
+  (enlive/transform-if (service ::engine)
+                (enlive-html/do->
+                 (apply enlive-html/set-attr (flatten-map (service ::engine)))
                  (engine-transform (service ::engine)))))
 
 (defn tomcat-server-xml
   "Generate server.xml content"
-  [node-type server]
-  {:pre [node-type]}
-  (xml-emit
-   (xml-template
-    (path-for *server-file*) node-type [server]
+  [session server]
+  {:pre [session]}
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *server-file*) session [server]
     [:Listener]
-    (transform-if (server ::listener) nil)
+    (enlive/transform-if (server ::listener) nil)
     [:GlobalNamingResources]
-    (transform-if (server ::global-resources) nil)
-    [:Service] (transform-if (server ::service)
-                 (enlive/clone-for [service (server ::service)]
+    (enlive/transform-if (server ::global-resources) nil)
+    [:Service] (enlive/transform-if (server ::service)
+                 (enlive-html/clone-for [service (server ::service)]
                    (service-transform service)))
     [:Server]
-    (enlive/do->
-     (transform-if (seq (apply concat (select-keys server [:port :shutdown])))
-                   (apply enlive/set-attr
+    (enlive-html/do->
+     (enlive/transform-if (seq (apply concat (select-keys server [:port :shutdown])))
+                   (apply enlive-html/set-attr
                           (apply concat (select-keys server [:port :shutdown]))))
-     (transform-if (server ::listener)
-                   (enlive/prepend (elt :Listener)))
-     (transform-if (server ::global-resources)
-                   (enlive/prepend
-                    (elt :GlobalNamingResources))))
+     (enlive/transform-if (server ::listener)
+                   (enlive-html/prepend (enlive/elt :Listener)))
+     (enlive/transform-if (server ::global-resources)
+                   (enlive-html/prepend
+                    (enlive/elt :GlobalNamingResources))))
     [:Listener]
-    (transform-if (server ::listener)
-      (enlive/clone-for
+    (enlive/transform-if (server ::listener)
+      (enlive-html/clone-for
        [listener (server ::listener)]
-       (apply enlive/set-attr (flatten-map listener))))
+       (apply enlive-html/set-attr (flatten-map listener))))
     [:GlobalNamingResources]
-    (transform-if (server ::global-resources)
+    (enlive/transform-if (server ::global-resources)
       (server-resources-transform (server ::global-resources))))
    server))
 
@@ -745,14 +741,14 @@
 
    When a tomcat configuration element is not specified, the relevant section of
    the template is output, unmodified."
-  [request server]
-  (let [base (parameter/get-for-target request [:tomcat :base])]
+  [session server]
+  (let [base (parameter/get-for-target session [:tomcat :base])]
     (->
-     request
+     session
      (directory/directory
       (str base "conf"))
      (remote-file/remote-file
       (str base "conf/server.xml")
       :content (apply
-                str (tomcat-server-xml (:node-type request) server))
+                str (tomcat-server-xml session server))
       :flag-on-changed tomcat-config-changed-flag))))

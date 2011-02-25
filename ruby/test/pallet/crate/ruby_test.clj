@@ -3,10 +3,13 @@
         clojure.test
         pallet.test-utils)
   (:require
-   [pallet.resource :as resource]))
+   [pallet.build-actions :as build-actions]
+   [pallet.action.exec-script :as exec-script]))
 
 (deftest invoke-test
-  (is (build-resources
-       []
+  (is (build-actions/build-actions
+       {}
        (ruby)
+       (exec-script/exec-script
+        @(ruby-version))
        (ruby-packages))))

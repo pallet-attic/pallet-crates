@@ -10,14 +10,13 @@
 
    Tested on ubuntu 10.04"
   (:require
-   [pallet.resource :as resource]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
    [pallet.argument :as argument]
-   [pallet.resource.file :as file]
-   [pallet.resource.package :as package]
    [pallet.crate.iptables :as iptables]
    [pallet.crate.nagios :as nagios]
-   [pallet.target :as target]
    [pallet.parameter :as parameter]
+   [pallet.session :as session]
    [clojure.string :as string])
   (:use
    pallet.thread-expr))
@@ -27,10 +26,11 @@
      :servicegroups        name for service group(s) service should be part of
      :check_command        command for service
      :service_description  description for the service"
-  [request {:keys [host_name] :as options}]
-  (parameter/update-for request
+  [session {:keys [host_name] :as options}]
+  (parameter/update-for session
    [:nagios :host-services
-    (keyword (or host_name (nagios/nagios-hostname (:target-node request))))]
+    (keyword (or host_name (nagios/nagios-hostname
+                            (session/target-node session))))]
    (fn [x]
      (distinct
       (conj
@@ -41,17 +41,17 @@
   "Configure nagios command monitoring.
      :command_name name
      :command_line command line"
-  [request & {:keys [command_name command_line] :as options}]
+  [session & {:keys [command_name command_line] :as options}]
   (parameter/update-for
-   request [:nagios :commands (keyword command_name)]
+   session [:nagios :commands (keyword command_name)]
    (fn [_] command_line)))
 
 (defn nrpe-client
   "Configure nrpe on machine to be monitored"
-  [request]
-  (-> request
+  [session]
+  (-> session
       (package/package "nagios-nrpe-server")
-      (when-let-> [server (parameter/get-for request [:nagios :server :ip] nil)]
+      (when-let-> [server (parameter/get-for session [:nagios :server :ip] nil)]
                   (file/sed
                    "/etc/nagios/nrpe.cfg"
                    {"allowed_hosts=127.0.0.1"
@@ -60,25 +60,25 @@
 (defn nrpe-client-port
   "Open the nrpe client port to the nagios server ip.  Used on the nagios server
   node to allow reporting via nrpe clients on monitored nodes."
-  [request]
-  (-> request
-      (when-let-> [server (parameter/get-for request [:nagios :server :ip] nil)]
+  [session]
+  (-> session
+      (when-let-> [server (parameter/get-for session [:nagios :server :ip] nil)]
         (iptables/iptables-accept-port 5666 "tcp" :source server))))
 
 (defn nrpe-check-load
   "Configure the nrpe check_load plugin."
-  [request]
+  [session]
   (service
-   request
+   session
    {:servicegroups [:machine]
     :check_command "check_nrpe_1arg!check_load"
     :service_description  "Current Load"}))
 
 (defn nrpe-check-users
   "Configure the nrpe check_users plugin."
-  [request]
+  [session]
   (service
-   request
+   session
    {:servicegroups [:machine]
     :check_command "check_nrpe_1arg!check_users"
     :service_description  "Current Users"}))
@@ -86,27 +86,27 @@
 (defn nrpe-check-disk
   "Configure the nrpe check_disk plugin.
    This checks the hda1 device."
-  [request]
+  [session]
   (service
-   request
+   session
    {:servicegroups [:machine]
     :check_command "check_nrpe_1arg!check_hda1"
     :service_description  "Root Disk"}))
 
 (defn nrpe-check-total-procs
   "Configure the nrpe check_total_procs plugin."
-  [request]
+  [session]
   (service
-   request
+   session
    {:servicegroups [:machine]
     :check_command "check_nrpe_1arg!check_total_procs"
     :service_description  "Total Processes"}))
 
 (defn nrpe-check-zombie-procs
   "Configure the nrpe check_zombie_procs plugin."
-  [request]
+  [session]
   (service
-   request
+   session
    {:servicegroups [:machine]
     :check_command "check_nrpe_1arg!check_zombie_procs"
     :service_description  "Zombie Processes"}))
@@ -124,7 +124,7 @@
   "Declare that a node's http service should be monitored by a nagios server.
    Uses the nagios `check_http` plugin to perform the checking, and options are
    passed to the plugin."
-  [request & {:keys [port ssl use-ipv4 use-ipv6 timeout
+  [session & {:keys [port ssl use-ipv4 use-ipv6 timeout
    no-body url expect string method]
       :or {timeout 10}
       :as options}]
@@ -133,7 +133,7 @@
              (string/join
               ""
               (map name (filter check-http-options (keys options)))))]
-    (-> request
+    (-> session
         (command
          :command_name cmd
          :command_line
@@ -163,7 +163,7 @@
   "Declare that a node's https certificate should be monitored by a nagios
    server.  Uses the nagios `check_http` plugin to perform the checking, and
    options are passed to the plugin."
-  [request & {:keys [port ssl use-ipv4
+  [session & {:keys [port ssl use-ipv4
    use-ipv6 timeout certificate]
               :or {timeout 10 certificate 14}
               :as options}]
@@ -172,7 +172,7 @@
              (string/join
               ""
               (map name (filter check-http-options (keys options)))))]
-    (-> request
+    (-> session
         (command
          :command_name cmd
          :command_line

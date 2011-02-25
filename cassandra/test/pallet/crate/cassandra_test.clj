@@ -1,8 +1,8 @@
 (ns pallet.crate.cassandra-test
   (:use pallet.crate.cassandra)
   (:require
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package]
+   [pallet.action.package :as package]
+   [pallet.build-actions :as build-actions]
    [pallet.stevedore :as stevedore])
   (:use clojure.test
         pallet.test-utils))
@@ -11,7 +11,7 @@
   []
   (let [a {:tag :n :image {:os-family :ubuntu}}]
     (is (first
-         (build-resources
-          [:node-type a]
+         (build-actions/build-actions
+          {:server a}
           (from-package)
           (install))))))

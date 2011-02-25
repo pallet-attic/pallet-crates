@@ -1,8 +1,6 @@
 (ns pallet.crate.squeak-test
   (:use pallet.crate.squeak
-        clojure.test)
-  (:require
-   [pallet.resource :as resource]))
+        clojure.test))
 
 (deftest smalltalk-test
   (is (= "obj new.\n"

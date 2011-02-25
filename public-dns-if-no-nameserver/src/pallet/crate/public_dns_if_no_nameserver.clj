@@ -1,7 +1,6 @@
 (ns pallet.crate.public-dns-if-no-nameserver
   (:require
-   pallet.resource.hostinfo
-   [pallet.resource.resource-when :as resource-when]
+   [pallet.action.conditional :as conditional]
    [pallet.crate.resolv :as resolv]))
 
 (defonce google-dns ["8.8.8.8" "8.8.4.4"])
@@ -9,11 +8,11 @@
 
 (defn public-dns-if-no-nameserver
   "Install a public nameserver if none configured"
-  [request & nameservers]
+  [session & nameservers]
   (let [nameservers (if (seq nameservers)
                       nameservers
                       (conj google-dns (first opendns-nameservers))) ]
-    (-> request
-        (resource-when/resource-when-not
+    (-> session
+        (conditional/when-not
          (nameservers)
          (resolv/resolv nil nameservers :rotate true)))))

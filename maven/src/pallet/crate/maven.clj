@@ -1,9 +1,9 @@
 (ns pallet.crate.maven
   (:require
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-directory :as remote-directory])
+   [pallet.session :as session]
+   [pallet.action :as action]
+   [pallet.action.package :as package]
+   [pallet.action.remote-directory :as remote-directory])
   (:use
    pallet.thread-expr))
 
@@ -21,21 +21,21 @@
        version "-bin.tar.bz2"))
 
 (defn download
-  [request & {:keys [maven-home version]
+  [session & {:keys [maven-home version]
               :or {maven-home "/opt/maven2" version "2.2.2"}
               :as options}]
   (remote-directory/remote-directory
-   request
+   session
    maven-home
    :url (maven-download-url version)
    :md5 (maven-download-md5 version)
    :unpack :tar :tar-options "xj"))
 
 (defn package
-  [request]
+  [session]
   (->
-   request
+   session
    (when->
-    (= :amzn-linux (request-map/os-family request))
+    (= :amzn-linux (session/os-family session))
     (package/add-jpackage :releasever "5.0"))
    (package/package "maven2")))

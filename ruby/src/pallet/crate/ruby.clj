@@ -1,22 +1,21 @@
 (ns pallet.crate.ruby
   "Installation of ruby from source"
   (:require
-   [pallet.resource :as resource]
-   [pallet.request-map :as request-map]
+   [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.session :as session]
+   [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.resource.package :as package]
-   [clojure.string :as string])
-  (:use
-   [pallet.resource.package :only [package package* package-manager]]
-   [pallet.resource.exec-script :only [exec-script]]
-   [pallet.resource.remote-file :only [remote-file]]
-   [pallet.resource.file]
-   [pallet.script :only [defscript]]
-   pallet.thread-expr))
+   [pallet.thread-expr :as thread-expr]
+   [clojure.string :as string]))
 
-(defscript ruby-version [])
-(stevedore/defimpl ruby-version :default []
-  (ruby "--version" "|" cut "-f2" "-d' '"))
+(script/defscript ruby-version [])
+(script/defimpl ruby-version :default []
+  (pipe ("ruby" "--version")
+        (cut nil :fields 2 :delimiter " ")))
 
 (def src-packages
   {:aptitude ["zlib-devel"  "gcc" "gcc-c++" "make"
@@ -52,43 +51,43 @@
            tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
        (->
         request
-        (for-> [p (src-packages (request-map/packager request))]
-          (package p))
-        (remote-file
+        (thread-expr/for-> [p (src-packages (session/packager request))]
+          (package/package p))
+        (remote-file/remote-file
          tarpath :url (ftp-path tarfile) :md5 (version-md5 version))
-        (exec-script
+        (exec-script/exec-script
          (if-not (pipe ("ruby" "--version")
                        (grep (quoted ~(string/replace version "-p" ".*"))))
            (do
              ~(stevedore/checked-script
                "Building ruby"
-               (cd (tmp-dir))
-               (tar xfz ~tarfile)
-               (cd ~basename)
+               ("cd" (tmp-dir))
+               ("tar" xfz ~tarfile)
+               ("cd" ~basename)
                ("./configure" "--enable-shared" "--enable-pthread")
-               (make)
-               (make install)
+               ("make")
+               ("make" install)
                (if-not (|| (file-exists? "/usr/bin/ruby")
                            (file-exists? "/usr/local/bin/ruby"))
                  (do (println "Could not find ruby executable")
                      (exit 1)))
-               (cd "ext/zlib")
-               (ruby "extconf.rb" "--with-zlib")
-               (make)
-               (make install)
-               (cd "../../")
-               (cd "ext/openssl")
-               (ruby "extconf.rb")
-               (make)
-               (make install)
-               (cd "../../")
-               (cd "ext/readline")
-               (ruby "extconf.rb")
-               (make)
-               (make install)
-               (cd "../../")
-               (make)
-               (make install)))))))))
+               ("cd" "ext/zlib")
+               ("ruby" "extconf.rb" "--with-zlib")
+               ("make")
+               ("make" install)
+               ("cd" "../../")
+               ("cd" "ext/openssl")
+               ("ruby" "extconf.rb")
+               ("make")
+               ("make" install)
+               ("cd" "../../")
+               ("cd" "ext/readline")
+               ("ruby" "extconf.rb")
+               ("make")
+               ("make" install)
+               ("cd" "../../")
+               ("make")
+               ("make" install)))))))))
 
 (defn ruby-packages
   "Install ruby from packages"
