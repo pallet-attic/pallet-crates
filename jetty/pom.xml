@@ -13,12 +13,10 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>java</artifactId>
-      <version>0.4.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>etc-default</artifactId>
-      <version>0.4.1-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>

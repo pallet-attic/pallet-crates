@@ -13,12 +13,10 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>sudoers</artifactId>
-      <version>0.4.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>ssh-key</artifactId>
-      <version>0.4.1-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>
