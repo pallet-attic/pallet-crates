@@ -6,3 +6,5 @@ target
 snippets
 autodoc/**
 sitemap.org
+pom.xml.tag
+pom.xml.releaseBackup
