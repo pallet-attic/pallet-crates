@@ -5,6 +5,7 @@
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
     <version>0.4.0</version>
+    <relativePath>../../pallet-pom</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet-crate-pom</artifactId>
