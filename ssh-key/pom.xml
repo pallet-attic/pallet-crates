@@ -4,11 +4,11 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crate-pom</artifactId>
-    <version>0.4.1</version>
+    <version>0.4.2-SNAPSHOT</version>
     <relativePath>../pallet-crate-pom</relativePath>
   </parent>
   <artifactId>ssh-key</artifactId>
-  <version>0.4.1</version>
+  <version>0.4.2-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
