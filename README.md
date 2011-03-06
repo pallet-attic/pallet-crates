@@ -21,7 +21,8 @@ individual crates that you use.
 
 ## Installation
 
-pallet-crates is distributed as a set of jars, and is available in the [sonatype repository](http://oss.sonatype.org/content/repositories/releases/org/cloudhoist).
+pallet-crates is distributed as a set of jars, and is available in the
+[sonatype repository](http://oss.sonatype.org/content/repositories/releases/org/cloudhoist).
 
 Installation is with maven, lein, cake, or your favourite maven repository aware
 build tool.

@@ -9,7 +9,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet-crate-pom</artifactId>
-  <version>0.4.1-SNAPSHOT</version>
+  <version>0.4.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Pallet crates parent module</name>
   <url>http://github.com/pallet/pallet-crates</url>
@@ -114,6 +114,11 @@
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
+        <artifactId>hudson</artifactId>
+        <version>0.4.2-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
         <artifactId>iptables</artifactId>
         <version>0.4.0</version>
       </dependency>
@@ -175,7 +180,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>ssh-key</artifactId>
-        <version>0.4.0</version>
+        <version>0.4.2-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>

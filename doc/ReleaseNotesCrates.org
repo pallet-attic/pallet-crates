@@ -1,0 +1,41 @@
+#+TITLE:     Pallet Crates - Release Notes
+
+The latest release is 0.4.1.
+
+* 0.4.1
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- add release.properties.in for managing release versions
+
+- Fix relative-link for parent pom
+
+- Add :version option to hudson/plugin
+  To allow running with a stable version of a plugin, add the :version
+  option to pallet.crate.hudson/plugin.  The jenkins site .../latest/..
+  link is not functional at the moment.
+
+- Updated for stevedore/map-to-arg-string with quoting
+
+- Update to vmfest 0.2.2
+
+- Update to central management of intra-crate dependencies
+  The versions of crates used for dependencies in creates test dependencies
+  is now managed via dependencyManagement in the pallet-crate-pom. Also
+  included release repository in poms to ensure parent poms can be found
+  and removed snapshot reositories, to speed updates.
+
+* 0.4.0
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** General
+
+The pallet crates have been moved into the pallet-crates project.
+
