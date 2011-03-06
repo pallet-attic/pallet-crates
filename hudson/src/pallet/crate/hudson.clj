@@ -301,23 +301,29 @@
                 permissions))
              options)})
 
-(def hudson-plugin-base-url "http://updates.hudson-labs.org/latest/")
+(def hudson-plugin-latest-url "http://updates.hudson-labs.org/latest/")
+(def hudson-plugin-base-url "http://mirrors.jenkins-ci.org/plugins/")
 
 (def ^{:doc "allow overide of urls"}
   hudson-plugins {})
 
 (defn default-plugin-path
-  [plugin]
-  (str hudson-plugin-base-url (name plugin) ".hpi"))
+  [plugin version]
+  (if (= :latest version)
+    (str hudson-plugin-latest-url (name plugin) ".hpi")
+    (str hudson-plugin-base-url (name plugin) "/" version "/"
+         (name plugin) ".hpi")))
 
 (defn plugin
   "Install a hudson plugin.  The plugin should be a keyword.
    :url can be used to specify a string containing the download url"
-  [request plugin & {:keys [url md5] :as options}]
+  [request plugin & {:keys [url md5 version]
+                     :or {version :latest}
+                     :as options}]
   {:pre [(keyword? plugin)]}
   (info (str "Hudson - add plugin " plugin))
   (let [src (merge
-             {:url (default-plugin-path plugin)}
+             {:url (default-plugin-path plugin version)}
              (plugin hudson-plugins)
              (select-keys options [:url :md5]))
         hudson-data-path (parameter/get-for-target

@@ -9,7 +9,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet-crate-pom</artifactId>
-  <version>0.4.1-SNAPSHOT</version>
+  <version>0.4.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Pallet crates parent module</name>
   <url>http://github.com/pallet/pallet-crates</url>
@@ -82,7 +82,7 @@
     <dependency>
       <groupId>vmfest</groupId>
       <artifactId>vmfest</artifactId>
-      <version>0.1.1</version>
+      <version>0.2.2</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
@@ -94,6 +94,111 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>automated-admin-user</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>etc-default</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>etc-hosts</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>hudson</artifactId>
+        <version>0.4.2-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>iptables</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>java</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>maven</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>mysql</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>nagios</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>nagios-config</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>package-builder</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>php</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>resolv</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>rubygems</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ruby</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ssh</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ssh-key</artifactId>
+        <version>0.4.2-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>sudoers</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>tomcat</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>upstart</artifactId>
+        <version>0.4.0</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <profiles>
     <profile>
@@ -121,5 +226,13 @@
     <pallet.version>0.4.0</pallet.version>
     <jclouds.version>1.0-beta-8</jclouds.version>
   </properties>
+
+  <!-- make sure we can find the parent pom -->
+  <repositories>
+    <repository>
+      <id>sonatype</id>
+      <url>http://oss.sonatype.org/content/repositories/releases</url>
+    </repository>
+  </repositories>
 
 </project>

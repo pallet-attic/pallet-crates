@@ -186,7 +186,7 @@
            (remote-file/remote-file
             "/var/lib/hudson/plugins/git.hpi"
             :group "tomcat6" :mode "0664"
-            :url (default-plugin-path :git))))
+            :url (default-plugin-path :git :latest))))
          (first
           (build-resources
            [:parameters (assoc-in parameters
@@ -194,7 +194,24 @@
                                   {:data-path "/var/lib/hudson"
                                    :group "tomcat6"
                                    :user "tomcat6"})]
-           (plugin :git))))))
+           (plugin :git)))))
+  (is (= (first
+          (build-resources
+           []
+           (directory/directory "/var/lib/hudson/plugins")
+           (user/user "tomcat6" :action :manage :comment "hudson")
+           (remote-file/remote-file
+            "/var/lib/hudson/plugins/git.hpi"
+            :group "tomcat6" :mode "0664"
+            :url (default-plugin-path :git "1.15"))))
+         (first
+          (build-resources
+           [:parameters (assoc-in parameters
+                                  [:host :id :hudson]
+                                  {:data-path "/var/lib/hudson"
+                                   :group "tomcat6"
+                                   :user "tomcat6"})]
+           (plugin :git :version "1.15"))))))
 
 (deftest invocation
   (is (build-resources

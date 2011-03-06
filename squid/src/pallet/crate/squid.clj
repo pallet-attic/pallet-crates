@@ -164,6 +164,6 @@
 (defn iptables-accept
   "Accept proxy requests, by default on port 3128."
   ([request] (iptables-accept
-              request (parameter/get-for-target [:squid :port] 3128)))
+              request (parameter/get-for-target request [:squid :port] 3128)))
   ([request port]
      (pallet.crate.iptables/iptables-accept-port request port)))
