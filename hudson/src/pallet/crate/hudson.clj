@@ -21,7 +21,9 @@
    [pallet.resource.user :as user]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:import
+   org.apache.commons.codec.binary.Base64))
 
 (def hudson-data-path "/var/lib/hudson")
 (def hudson-owner "root")
@@ -415,8 +417,9 @@
 (enlive/defsnippet svn-job-xml
   (path-for *svn-file*) node-type
   [node-type scm-path options]
-  [:locations :*] (xml/clone-for [path (:branches options [""])]
-                                 [:remote] (xml/content (str scm-path path)))
+  [:locations :*] (xml/clone-for
+                   [path (:branches options [""])]
+                   [:remote] (xml/content (str (first scm-path) path)))
   [:useUpdate] (xml/content (truefalse (:use-update options)))
   [:doRevert] (xml/content (truefalse (:do-revert options)))
   ;; :browser {:class "a.b.c" :url "http://..."}
@@ -555,6 +558,31 @@
   (let [scm-type (or scm-type (some determine-scm-type scms))]
     (maven2-job-xml node-type scm-type scms options)))
 
+(defn credential-entry
+  "Produce an xml representation for a credential entry in a credential store"
+  [[name {:keys [user-name password]}]]
+  [:entry {}
+   [:string {} name]
+   [:hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential {}
+    [:userName {} user-name]
+    [:password {} (Base64/encodeBase64String (.getBytes password))]]])
+
+(defn credential-store
+  "Output a credential store definition for a job configuration.
+   Accepts a credential map from name to credentials. Credentials
+   are a map containing :user-name and :password keys."
+  [credential-map]
+  (with-out-str
+    (prxml
+     [:decl! {:version "1.0"}]
+     [:hudson.scm.PerJobCredentialStore {}
+      [:credentials {:class "hashtable"}
+       (map credential-entry credential-map)]])))
+
+(defn url-without-path
+  [url-string]
+  (let [url (java.net.URL. url-string)]
+    (java.net.URL. (.getProtocol url) (.getHost url) (.getPort url) "")))
 
 (defn job
   "Configure a hudson job.
@@ -609,12 +637,14 @@
                           :permissions #{:item-read :item-build}}]})"
   [request build-type job-name & {:keys [refspec receivepack uploadpack
                                          tagopt description branches scm
-                                         scm-type merge-target]
+                                         scm-type merge-target
+                                         subversion-credentials]
                                   :as options}]
   (let [hudson-owner (parameter/get-for-target request [:hudson :owner])
         hudson-group (parameter/get-for-target request [:hudson :group])
         hudson-data-path (parameter/get-for-target
-                          request [:hudson :data-path])]
+                          request [:hudson :data-path])
+        scm (normalise-scms (:scm options))]
     (trace (str "Hudson - configure job " job-name))
     (->
      request
@@ -627,14 +657,24 @@
        build-type
        (:node-type request)
        (:scm-type options)
-       (normalise-scms (:scm options))
+       scm
        (dissoc options :scm :scm-type))
       :owner hudson-owner :group hudson-group :mode "0664")
      (directory/directory
       hudson-data-path
       :owner hudson-owner :group hudson-group
       :mode "g+w"
-      :recursive true))))
+      :recursive true)
+     (when->
+      subversion-credentials
+      (remote-file
+      (str hudson-data-path "/jobs/" job-name "/subversion.credentials")
+      :content
+      (credential-store (zipmap
+                         (map #(str "<" (url-without-path (ffirst scm)) ">" %)
+                              (keys subversion-credentials))
+                         (vals subversion-credentials)))
+      :owner hudson-owner :group hudson-group :mode "0664")))))
 
 
 
