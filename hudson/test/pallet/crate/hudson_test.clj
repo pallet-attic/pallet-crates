@@ -90,14 +90,28 @@
          (apply str
           (xml/emit*
            (output-scm-for :svn {:tag :b :image {:os-family :ubuntu}}
-                           "http://project.org/svn/project" {})))))
+                           ["http://project.org/svn/project"] {})))))
   (is (= "<scm class=\"hudson.scm.SubversionSCM\">\n  <locations>\n    <hudson.scm.SubversionSCM_-ModuleLocation>\n      <remote>http://project.org/svn/project/branch/a</remote><remote>http://project.org/svn/project/branch/a</remote>\n    </hudson.scm.SubversionSCM_-ModuleLocation><hudson.scm.SubversionSCM_-ModuleLocation>\n      <remote>http://project.org/svn/project/branch/b</remote><remote>http://project.org/svn/project/branch/b</remote>\n    </hudson.scm.SubversionSCM_-ModuleLocation>\n  </locations>\n  <useUpdate>false</useUpdate>\n  <doRevert>false</doRevert>\n  <browser class=\"c\"><url>url</url></browser>\n  <excludedRegions></excludedRegions>\n  <includedRegions></includedRegions>\n  <excludedUsers></excludedUsers>\n  <excludedRevprop></excludedRevprop>\n  <excludedCommitMessages></excludedCommitMessages>\n</scm>"
          (apply str
           (xml/emit*
            (output-scm-for :svn {:tag :b :image {:os-family :ubuntu}}
-                           "http://project.org/svn/project/branch/"
+                           ["http://project.org/svn/project/branch/"]
                            {:branches ["a" "b"]
                             :browser {:class "c" :url "url"}}))))))
+
+(deftest credential-entry-test
+  (is (= [:entry {}
+          [:string {} "<http://server.com:80>"]
+          [:hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential {}
+           [:userName {} "u"]
+           [:password {} "cA==\r\n"]]]
+         (credential-entry
+          ["<http://server.com:80>" {:user-name "u" :password "p"}]))))
+
+(deftest credential-store-test
+  (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><hudson.scm.PerJobCredentialStore><credentials class=\"hashtable\"><entry><string>&lt;http://server.com:80&gt;</string><hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential><userName>u</userName><password>cA==\r\n</password></hudson.scm.SubversionSCM_-DescriptorImpl_-PasswordCredential></entry></credentials></hudson.scm.PerJobCredentialStore>"
+         (credential-store
+          {"<http://server.com:80>" {:user-name "u" :password "p"}}))))
 
 (deftest plugin-property-test
   (is (= {:tag "hudson.plugins.jira.JiraProjectProperty"
@@ -239,7 +253,7 @@
     (live-test/test-nodes
      [compute node-map node-types]
      {:hudson
-      {:image image
+      {:image (update-in image [:min-ram] #(max (or % 0) 512))
        :count 1
        :phases {:bootstrap (resource/phase
                             (automated-admin-user/automated-admin-user))
@@ -247,25 +261,34 @@
                             (tomcat/install :version 6)
                             (tomcat-deploy)
                             (config)
-                            (plugin :git)
+                            (plugin :git :version "1.1.5")
                             (plugin :jira)
                             (plugin :disk-usage)
                             (plugin :shelve-project-plugin)
                             (job
                              :maven2 "gitjob"
+                             :maven-name "default maven"
                              :scm ["git://github.com/hugoduncan/pallet.git"])
                             (job
                              :maven2 "svnjob"
-                             :scm ["http://svn.host.com/project"])
+                             :maven-name "default maven"
+                             :scm ["http://svn.host.com/project"]
+                             :subversion-credentials
+                             {"somename"
+                              {:user-name "u" :password "p"}})
                             (tomcat/init-service :action :restart))
                 :verify (resource/phase
                          ;; hudson takes a while to start up
                          (network-service/wait-for-http-status
-                          "http://localhost:8080/hudson" 200 :url-name "hudson")
+                          "http://localhost:8080/hudson" 200
+                          :max-retries 10 :url-name "hudson")
                          (exec-script/exec-checked-script
                           "check hudson installed"
                           (wget "-O-" "http://localhost:8080/hudson")
                           (wget "-O-" "http://localhost:8080/hudson/job/gitjob")
                           (wget
-                           "-O-" "http://localhost:8080/hudson/job/svnjob")))}}}
+                           "-O-" "http://localhost:8080/hudson/job/svnjob")
+                          ("test"
+                           (file-exists?
+                            "/var/lib/hudson/jobs/svnjob/subversion.credentials"))))}}}
      (core/lift (:hudson node-types) :phase :verify :compute compute))))
