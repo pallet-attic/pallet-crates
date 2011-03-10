@@ -36,6 +36,7 @@
 (defvar- *maven2-job-config-file* "job/maven2_config.xml")
 (defvar- *git-file* "scm/git.xml")
 (defvar- *svn-file* "scm/svn.xml")
+(defvar- *ant-file* "hudson.tasks.Ant.xml")
 
 (defn path-for
   "Get the actual filename corresponding to a template."
@@ -706,6 +707,21 @@
    maven-tasks))
 
 
+;; todo: merge with hudson-maven-xml
+(defn hudson-ant-xml
+  "Generate hudson.task.Ant.xml content"
+  [node-type hudson-data-path ant-tasks]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *ant-file*) node-type
+    [tasks]
+    [:installations xml/first-child]
+    (xml/clone-for [task tasks]
+                   [:name] (xml/content (first task))
+                   [:home] (xml/content
+                            (hudson-tool-path hudson-data-path (first task)))
+                   [:properties] nil))
+   ant-tasks))
 
 (resource/defcollect maven-config
   "Configure a maven instance for hudson."
@@ -728,6 +744,26 @@
                       (:node-type request) hudson-data-path args))
        :owner hudson-owner :group group)))))
 
+(resource/defcollect ant-config
+  "Configure an ant instance for hudson."
+  {:use-arglist [request name version]}
+  (hudson-ant*
+   [request args]
+   (let [group (parameter/get-for-target request [:hudson :group])
+         hudson-owner (parameter/get-for-target request [:hudson :owner])
+         hudson-data-path (parameter/get-for-target
+                           request [:hudson :data-path])]
+     (stevedore/do-script
+      (directory*
+       request hudson-data-path :owner hudson-owner :group group :mode "775")
+      (remote-file*
+       request
+       (str hudson-data-path "/" *ant-file*)
+       :content (apply
+                 str (hudson-ant-xml
+                      (:node-type request) hudson-data-path args))
+       :owner hudson-owner :group group)))))
+
 (defn maven
   [request name version]
   (let [group (parameter/get-for-target request [:hudson :group])
@@ -740,6 +776,19 @@
       :maven-home (hudson-tool-path hudson-data-path name)
       :version version :owner hudson-owner :group group)
      (maven-config name version))))
+
+(defn ant
+  [request name version]
+  (let [group (parameter/get-for-target request [:hudson :group])
+        hudson-owner (parameter/get-for-target request [:hudson :owner])
+        hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])]
+    (->
+     request
+     #_(ant/download
+      :ant-home (hudson-tool-path hudson-data-path name)
+      :version version :owner hudson-owner :group group)
+     (ant-config name version))))
 
 (defn hudson-user-xml
   "Generate user config.xml content"
