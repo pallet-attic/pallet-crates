@@ -3,9 +3,9 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.cloudhoist</groupId>
-    <artifactId>pallet-crate-pom</artifactId>
-    <version>0.4.2</version>
-    <relativePath>../pallet-crate-pom</relativePath>
+    <artifactId>pallet-crates</artifactId>
+    <version>0.4.2-SNAPSHOT</version>
+    <relativePath>..</relativePath>
   </parent>
   <artifactId>pallet-crates-all</artifactId>
   <packaging>jar</packaging>
@@ -88,7 +88,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>hudson</artifactId>
-      <version>0.4.2</version>
+      <version>0.4.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>

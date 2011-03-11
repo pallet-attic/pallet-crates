@@ -3,18 +3,19 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.cloudhoist</groupId>
-    <artifactId>pallet-crate-pom</artifactId>
+    <artifactId>pallet-crates</artifactId>
     <version>0.4.2-SNAPSHOT</version>
-    <relativePath>../pallet-crate-pom</relativePath>
+    <relativePath>..</relativePath>
   </parent>
   <artifactId>pallet-crates-standalone</artifactId>
   <packaging>jar</packaging>
+
   <build>
     <plugins>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <configuration>
-          <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+          <outputDirectory>src</outputDirectory>
           <artifactItems>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
@@ -94,7 +95,7 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>hudson</artifactId>
-              <version>0.4.2</version>
+              <version>0.4.2-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
@@ -279,61 +280,26 @@
         </executions>
       </plugin>
       <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.4.1</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>src</directory>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>com.theoryinpractise</groupId>
         <artifactId>clojure-maven-plugin</artifactId>
+        <!-- marginalia isn't in a release version of maven-clojure-plugin yet -->
+        <!-- <version>1.3.8-SNAPSHOT</version> -->
         <configuration>
           <temporaryOutputDirectory>true</temporaryOutputDirectory>
           <sourceDirectories>
-            <sourceDirectory>../automated-admin-user/src</sourceDirectory>
-            <sourceDirectory>../bzr/src</sourceDirectory>
-            <sourceDirectory>../cassandra/src</sourceDirectory>
-            <sourceDirectory>../chef/src</sourceDirectory>
-            <sourceDirectory>../cloudkick/src</sourceDirectory>
-            <sourceDirectory>../couchdb/src</sourceDirectory>
-            <sourceDirectory>../crontab/src</sourceDirectory>
-            <sourceDirectory>../cruise-control-rb/src</sourceDirectory>
-            <sourceDirectory>../etc-default/src</sourceDirectory>
-            <sourceDirectory>../etc-hosts/src</sourceDirectory>
-            <sourceDirectory>../ganglia/src</sourceDirectory>
-            <sourceDirectory>../git/src</sourceDirectory>
-            <sourceDirectory>../github/src</sourceDirectory>
-            <sourceDirectory>../gpg/src</sourceDirectory>
-            <sourceDirectory>../haproxy/src</sourceDirectory>
-            <sourceDirectory>../hudson/src</sourceDirectory>
-            <sourceDirectory>../iozone/src</sourceDirectory>
-            <sourceDirectory>../iptables/src</sourceDirectory>
-            <sourceDirectory>../java/src</sourceDirectory>
-            <sourceDirectory>../jetty/src</sourceDirectory>
-            <sourceDirectory>../maven/src</sourceDirectory>
-            <sourceDirectory>../monit/src</sourceDirectory>
-            <sourceDirectory>../mysql/src</sourceDirectory>
-            <sourceDirectory>../nagios/src</sourceDirectory>
-            <sourceDirectory>../nagios-config/src</sourceDirectory>
-            <sourceDirectory>../nginx/src</sourceDirectory>
-            <sourceDirectory>../node-js/src</sourceDirectory>
-            <sourceDirectory>../package-builder/src</sourceDirectory>
-            <sourceDirectory>../php/src</sourceDirectory>
-            <sourceDirectory>../postfix/src</sourceDirectory>
-            <sourceDirectory>../postgres/src</sourceDirectory>
-            <sourceDirectory>../public-dns-if-no-nameserver/src</sourceDirectory>
-            <sourceDirectory>../rabbitmq/src</sourceDirectory>
-            <sourceDirectory>../resolv/src</sourceDirectory>
-            <sourceDirectory>../ruby/src</sourceDirectory>
-            <sourceDirectory>../rubygems/src</sourceDirectory>
-            <sourceDirectory>../sphinx/src</sourceDirectory>
-            <sourceDirectory>../splunk/src</sourceDirectory>
-            <sourceDirectory>../squeak/src</sourceDirectory>
-            <sourceDirectory>../ssh/src</sourceDirectory>
-            <sourceDirectory>../ssh-key/src</sourceDirectory>
-            <sourceDirectory>../squid/src</sourceDirectory>
-            <sourceDirectory>../sudoers/src</sourceDirectory>
-            <sourceDirectory>../syslog-ng/src</sourceDirectory>
-            <sourceDirectory>../tomcat/src</sourceDirectory>
-            <sourceDirectory>../upstart/src</sourceDirectory>
-            <sourceDirectory>../vpnc/src</sourceDirectory>
-            <sourceDirectory>../wordpress/src</sourceDirectory>
-            <sourceDirectory>../zeromq/src</sourceDirectory>
-            <sourceDirectory>../zookeeper/src</sourceDirectory>
+            <sourceDirectory>src</sourceDirectory>
           </sourceDirectories>
           <testSourceDirectories>
             <testSourceDirectory>../automated-admin-user/test</testSourceDirectory>
@@ -386,28 +352,88 @@
             <testSourceDirectory>../wordpress/test</testSourceDirectory>
             <testSourceDirectory>../zeromq/test</testSourceDirectory>
             <testSourceDirectory>../zookeeper/test</testSourceDirectory>
-
           </testSourceDirectories>
           <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m</clojureOptions>
           <warnOnReflection>false</warnOnReflection>
+          <marginaliaSourceDirectories>
+            <param>target/classes</param>
+          </marginaliaSourceDirectories>
+          <marginaliaTargetDirectory>../autodoc/marginalia</marginaliaTargetDirectory>
+          <autodocTargetDirectory>../autodoc/autodoc</autodocTargetDirectory>
         </configuration>
         <executions>
           <execution>
             <id>compile-clojure</id>
-            <phase>compile</phase>
+            <!-- we use the test phase, otherwise he dependency unpack fails -->
+            <phase>test</phase>
             <goals>
               <goal>compile</goal>
             </goals>
           </execution>
           <execution>
-            <id>test-clojure</id>
+            <id>test-clojure-all</id>
             <phase>test</phase>
             <goals>
               <goal>test</goal>
             </goals>
           </execution>
+          <execution>
+            <id>marginalia</id>
+            <phase>site</phase>
+            <goals>
+              <goal>marginalia</goal>
+            </goals>
+            <configuration>
+              <skip>false</skip>
+            </configuration>
+          </execution>
+          <!-- running autodoc in a phase doesn't seem to work -->
+          <!-- invoke with mvn clojure:autodoc as a workaround -->
+          <execution>
+            <id>autodoc</id>
+            <phase>site</phase>
+            <goals>
+              <goal>autodoc</goal>
+            </goals>
+            <configuration>
+              <skip>false</skip>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
+
+
+  <!-- all crates as optional dependencies, so they are -->
+  <!-- built first, but not included as transistive dependencies -->
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet-crates-all</artifactId>
+      <version>0.4.2-SNAPSHOT</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet</artifactId>
+      <version>${pallet.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- site dependencies -->
+    <dependency>
+      <groupId>marginalia</groupId>
+      <artifactId>marginalia</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>autodoc</groupId>
+      <artifactId>autodoc</artifactId>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
+
 </project>
+
