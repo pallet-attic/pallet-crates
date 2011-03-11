@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crates</artifactId>
-    <version>0.4.2</version>
+    <version>0.4.3-SNAPSHOT</version>
     <relativePath>..</relativePath>
   </parent>
   <artifactId>pallet-crates-standalone</artifactId>
@@ -411,7 +411,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-crates-all</artifactId>
-      <version>0.4.2</version>
+      <version>0.4.3-SNAPSHOT</version>
       <optional>true</optional>
     </dependency>
     <dependency>
