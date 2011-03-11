@@ -1,6 +1,19 @@
 #+TITLE:     Pallet Crates - Release Notes
 
-The latest release is 0.4.1.
+The latest release is 0.4.2.
+
+* 0.4.2
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- Add support for svn credentials in hudson job configuration
+  In order to access a svn repository with credentials, pass the
+  :subversion-credentials keyword to the hudson job definition.  The
+  argument is a map from a name, to a map of :user-name and password
 
 * 0.4.1
 
