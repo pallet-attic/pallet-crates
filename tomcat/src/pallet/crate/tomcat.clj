@@ -97,12 +97,20 @@
         group (or group tomcat-user)
         service (or service package)
         base-dir (or base-dir (str tomcat-base package "/"))
-        config-dir (str tomcat-config-root package "/")]
+        config-dir (str tomcat-config-root package "/")
+        use-jpackage (and
+                      (= :centos (request-map/os-family request))
+                      (re-matches
+                       #"5\.[0-5]" (request-map/os-version request)))
+        options (if use-jpackage
+                  (assoc options
+                    :enable ["jpackage-generic" "jpackage-generic-updates"]
+                    :exclude ["jpackage-utils"])
+                  options)]
     (-> request
-        (when->
-         (and (= :centos (request-map/os-family request))
-              (re-matches #"5\.[0-5]" (request-map/os-version request)))
-         (package/add-jpackage :releasever "5.0"))
+        (when-> use-jpackage
+         (package/add-jpackage :releasever "5.0")
+         (package/package-manager-update-jpackage))
         (when-> (= :install (:action options :install))
                 (parameter/assoc-for-target
                  [:tomcat :base] base-dir
@@ -116,7 +124,12 @@
          (apply concat options))
         (when-> (:purge options)
                 (directory/directory
-                 tomcat-base :action :delete :recursive true :force true)))))
+                 tomcat-base :action :delete :recursive true :force true))
+        (exec-script/exec-checked-script
+         (format "Check tomcat is at %s" base-dir)
+         (if-not (directory? ~base-dir)
+           (println "Tomcat not installed at expected location")
+           (exit 1))))))
 
 (defn tomcat
   "DEPRECATED: use install instead."
