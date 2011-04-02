@@ -9,4 +9,13 @@
   </parent>
   <artifactId>maven</artifactId>
   <version>0.4.2-SNAPSHOT</version>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>automated-admin-user</artifactId>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

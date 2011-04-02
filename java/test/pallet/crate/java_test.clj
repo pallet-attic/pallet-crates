@@ -2,6 +2,7 @@
   (:use pallet.crate.java)
   (:require
    [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.live-test :as live-test]
    [pallet.resource :as resource]
@@ -139,17 +140,20 @@
        :count 1
        :phases
        {:bootstrap (resource/phase
-                    (pallet.resource.package/package-manager
-                     :configure :proxy "http://192.168.2.37:3128")
                     (package/minimal-packages)
                     (package/package-manager :update)
                     (automated-admin-user/automated-admin-user))
-        :configure (resource/phase
-                    (remote-file/remote-file
-                     "jdk.bin"
-                     :local-file "artifacts/jdk-6u23-linux-x64-rpm.bin"
-                     :mode "755")
-                    (java :sun :rpm-bin "./jdk.bin"))
+        :configure (fn [request]
+                     (->
+                      request
+                      (remote-file/remote-file
+                       "jdk.bin"
+                       :local-file
+                       (if (compute/is-64bit? (:target-node request))
+                         "artifacts/jdk-6u23-linux-x64-rpm.bin"
+                         "artifacts/jdk-6u24-linux-i586-rpm.bin")
+                       :mode "755")
+                      (java :sun :rpm-bin "./jdk.bin")))
         :verify (resource/phase
                  (exec-script/exec-checked-script
                   "check java installed"

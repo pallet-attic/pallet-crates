@@ -116,6 +116,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>swank-clojure</groupId>
+      <artifactId>swank-clojure</artifactId>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>vmfest</groupId>
       <artifactId>vmfest</artifactId>
       <version>0.2.2</version>
@@ -161,7 +167,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>java</artifactId>
-        <version>0.4.0</version>
+        <version>0.4.2-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -226,7 +232,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>tomcat</artifactId>
-        <version>0.4.0</version>
+        <version>0.4.2-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -254,6 +260,7 @@
           <groupId>com.theoryinpractise</groupId>
           <artifactId>clojure-maven-plugin</artifactId>
           <configuration>
+            <clojureOptions>-Xmx1024m -Djava.awt.headless=true -XX:MaxPermSize=256m</clojureOptions>
           </configuration>
           <executions>
             <execution>
@@ -314,7 +321,7 @@
   </repositories>
 
   <properties>
-    <pallet.version>0.4.10</pallet.version>
+    <pallet.version>0.4.15-SNAPSHOT</pallet.version>
     <jclouds.version>1.0-beta-8</jclouds.version>
   </properties>
 </project>

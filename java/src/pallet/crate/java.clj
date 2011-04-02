@@ -50,6 +50,14 @@
 
 (def ubuntu-partner-url "http://archive.canonical.com/ubuntu")
 
+(defn- use-jpackage
+  "Determine if jpackage should be used"
+  [request]
+  (let [os-family (request-map/os-family request)]
+    (and
+     (= :centos os-family)
+     (re-matches #"5\.[0-5]" (request-map/os-version request)))))
+
 (defn java
   "Install java. Options can be :sun, :openjdk, :jdk, :jre.
    By default openjdk will be installed.
@@ -62,8 +70,8 @@
         components (or (seq (filter #{:jdk :jre} options))
                        [:jdk])
         packager (:target-packager request)
-        os-family (request-map/os-family request)]
-
+        os-family (request-map/os-family request)
+        use-jpackage (use-jpackage request)]
     (let [vc (fn [request vendor component]
                (let [pkgs (java-package-name packager vendor component)]
                  (->
@@ -96,7 +104,9 @@
                                (package/package-manager :update)))
                (when->
                 (= packager :yum)
-                (package/package "jpackage-utils")
+                (package/add-jpackage)
+                (package/package-manager-update-jpackage)
+                (package/jpackage-utils)
                 (when-let->
                  [rpm-bin (:rpm-bin
                            (apply hash-map (remove all-keywords options)))]

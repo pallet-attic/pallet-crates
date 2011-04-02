@@ -2,6 +2,8 @@
   (:use pallet.crate.hudson)
   (:require
    [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.crate.iptables :as iptables]
+   [pallet.crate.ssh :as ssh]
    [pallet.template :only [apply-templates]]
    [pallet.core :as core]
    [pallet.live-test :as live-test]
@@ -12,6 +14,7 @@
    [pallet.resource.directory :as directory]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.network-service :as network-service]
+   [pallet.resource.remote-file :as remote-file]
    [pallet.resource.user :as user]
    [pallet.crate.maven :as maven]
    [pallet.crate.tomcat :as tomcat]
@@ -164,6 +167,14 @@
                       "/var/lib/hudson"
                       [["name" "2.2.0"]])))))
 
+(deftest hudson-ant-xml-test
+  (core/defnode test-node {:os-family :ubuntu})
+  (is (= "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Ant_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Ant_-AntInstallation>\n      <name>name</name>\n      <home>/some/path</home>\n      <properties>a=1\n</properties>\n    </hudson.tasks.Ant_-AntInstallation>\n  </installations>\n</hudson.tasks.Ant_-DescriptorImpl>"
+         (apply str (hudson-ant-xml
+                      test-node
+                      "/var/lib/hudson"
+                      [["name" "/some/path" {:a 1}]])))))
+
 (deftest hudson-maven-test
   (is (= (first
           (build-resources
@@ -190,6 +201,26 @@
                                         :owner "root"
                                         :data-path "/var/lib/hudson"}}}}]
            (maven "default maven" "2.2.0"))))))
+
+(deftest hudson-ant-test
+  (is (= (first
+          (build-resources
+           []
+           (directory/directory
+            "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "775")
+           (remote-file/remote-file
+            "/var/lib/hudson/hudson.tasks.Ant.xml"
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Ant_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Ant_-AntInstallation>\n      <name>name</name>\n      <home>/some/path</home>\n      <properties>a=1\n</properties>\n    </hudson.tasks.Ant_-AntInstallation>\n  </installations>\n</hudson.tasks.Ant_-DescriptorImpl>"
+            :owner "root"
+            :group "tomcat6")))
+         (first
+          (build-resources
+           [:node-type {:image {:os-family :ubuntu}}
+            :parameters {:host
+                         {:id {:hudson {:user "tomcat6" :group "tomcat6"
+                                        :owner "root"
+                                        :data-path "/var/lib/hudson"}}}}]
+           (ant-config "name" "/some/path" {:a 1}))))))
 
 (deftest plugin-test
   (is (= (first
@@ -235,7 +266,12 @@
         [:host :id :hudson :user] "tomcat6"
         [:host :id :hudson :group] "tomcat6")
        (maven "name" "2.2.1")
+       (ant-config "name" "/some/path" {:a 1})
        (job :maven2 "job")
+       (job :ant "job" :ant-tasks [{:target "a"
+                                    :antName "name"
+                                    :buildFile "some/file.xml"
+                                    :properties {:a 1}}])
        (plugin :git)))
   (is (build-resources
        [:parameters parameters]
@@ -249,46 +285,64 @@
 (def unsupported [{:os-family :debian}]) ; no tomcat6
 
 (deftest live-test
+  (remote-file/set-force-overwrite true)
   (doseq [image (live-test/exclude-images live-test/*images* unsupported)]
     (live-test/test-nodes
      [compute node-map node-types]
      {:hudson
       {:image (update-in image [:min-ram] #(max (or % 0) 512))
        :count 1
-       :phases {:bootstrap (resource/phase
-                            (automated-admin-user/automated-admin-user))
-                :configure (resource/phase
-                            (tomcat/install :version 6)
-                            (tomcat-deploy)
-                            (config)
-                            (plugin :git :version "1.1.5")
-                            (plugin :jira)
-                            (plugin :disk-usage)
-                            (plugin :shelve-project-plugin)
-                            (job
-                             :maven2 "gitjob"
-                             :maven-name "default maven"
-                             :scm ["git://github.com/hugoduncan/pallet.git"])
-                            (job
-                             :maven2 "svnjob"
-                             :maven-name "default maven"
-                             :scm ["http://svn.host.com/project"]
-                             :subversion-credentials
-                             {"somename"
-                              {:user-name "u" :password "p"}})
-                            (tomcat/init-service :action :restart))
-                :verify (resource/phase
-                         ;; hudson takes a while to start up
-                         (network-service/wait-for-http-status
-                          "http://localhost:8080/hudson" 200
-                          :max-retries 10 :url-name "hudson")
-                         (exec-script/exec-checked-script
-                          "check hudson installed"
-                          (wget "-O-" "http://localhost:8080/hudson")
-                          (wget "-O-" "http://localhost:8080/hudson/job/gitjob")
-                          (wget
-                           "-O-" "http://localhost:8080/hudson/job/svnjob")
-                          ("test"
-                           (file-exists?
-                            "/var/lib/hudson/jobs/svnjob/subversion.credentials"))))}}}
+       :phases
+       {:bootstrap (resource/phase
+                    (automated-admin-user/automated-admin-user))
+        :configure (resource/phase
+                    (iptables/iptables-accept-icmp)
+                    (iptables/iptables-accept-established)
+                    (ssh/iptables-accept)
+                    (iptables/iptables-accept-port 8080)
+                    (iptables/iptables-redirect-port 80 8080)
+                    (tomcat/install :version 6)
+                    (tomcat-deploy)
+                    (config)
+                    (plugin :git :version "1.1.5")
+                    (plugin :jira :version "1.26")
+                    (plugin :disk-usage :version "0.12")
+                    (plugin :shelve-project-plugin :version "1.1")
+                    (ant-config "antabc" "/some/path" {})
+                    (job
+                     :maven2 "gitjob"
+                     :maven-name "default maven"
+                     :scm ["git://github.com/hugoduncan/pallet.git"])
+                    (job
+                     :maven2 "svnjob"
+                     :maven-name "default maven"
+                     :scm ["http://svn.host.com/project"]
+                     :subversion-credentials
+                     {"somename"
+                      {:user-name "u" :password "p"}})
+                    (job
+                     :ant "antjob"
+                     :num-to-keep 1
+                     :ant-tasks [{:targets "jar"
+                                  :ant-name "name"
+                                  :build-file "file.xml"
+                                  :properties {:a 1}}]
+                     :scm ["git://github.com/hugoduncan/pallet.git"])
+                    (tomcat/init-service :action :restart))
+        :verify (resource/phase
+                 ;; hudson takes a while to start up
+                 (network-service/wait-for-http-status
+                  "http://localhost:8080/hudson/" 200
+                  :max-retries 10 :standoff 5 :url-name "hudson")
+                 (exec-script/exec-checked-script
+                  "check hudson installed"
+                  (wget "-O-" "http://localhost:8080/hudson")
+                  (wget "-O-" "http://localhost:8080/hudson/job/gitjob")
+                  (wget "-O-" "http://localhost:8080/hudson/job/svnjob")
+                  (wget "-O-" "http://localhost:8080/hudson/job/antjob")
+                  ("test"
+                   (file-exists?
+                    "/var/lib/hudson/jobs/svnjob/subversion.credentials"))
+                  ("test"
+                   (file-exists? "/var/lib/hudson/hudson.tasks.Ant.xml"))))}}}
      (core/lift (:hudson node-types) :phase :verify :compute compute))))
