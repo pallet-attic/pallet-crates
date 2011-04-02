@@ -104,13 +104,13 @@
                        #"5\.[0-5]" (request-map/os-version request)))
         options (if use-jpackage
                   (assoc options
-                    :enable ["jpackage-generic" "jpackage-generic-updates"]
-                    :exclude ["jpackage-utils"])
+                    :enable ["jpackage-generic" "jpackage-generic-updates"])
                   options)]
     (-> request
         (when-> use-jpackage
-         (package/add-jpackage :releasever "5.0")
-         (package/package-manager-update-jpackage))
+                (package/add-jpackage :releasever "5.0")
+                (package/package-manager-update-jpackage)
+                (package/jpackage-utils))
         (when-> (= :install (:action options :install))
                 (parameter/assoc-for-target
                  [:tomcat :base] base-dir

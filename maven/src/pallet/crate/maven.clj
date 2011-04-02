@@ -31,11 +31,23 @@
    :md5 (maven-download-md5 version)
    :unpack :tar :tar-options "xj"))
 
+
 (defn package
-  [request]
-  (->
-   request
-   (when->
-    (= :amzn-linux (request-map/os-family request))
-    (package/add-jpackage :releasever "5.0"))
-   (package/package "maven2")))
+  [request & {:keys [package-name] :or {package-name "maven2"} :as options}]
+  (let [use-jpackage (or
+                      (= :amzn-linux (request-map/os-family request))
+                      (and
+                       (= :centos (request-map/os-family request))
+                       (re-matches
+                        #"5\.[0-5]" (request-map/os-version request))))
+        options (if use-jpackage
+                  (assoc options
+                    :enable ["jpackage-generic" "jpackage-generic-updates"])
+                  options)]
+    (->
+     request
+     (when-> use-jpackage
+      (package/add-jpackage :releasever "5.0")
+      (package/package-manager-update-jpackage)
+      (package/jpackage-utils))
+     (apply-map-> package/package package-name options))))

@@ -38,7 +38,13 @@
           (build-resources
            []
            (package/package-manager :update)
-           (package/package "tomcat6")))
+           (package/package "tomcat6")
+           (exec-script/exec-checked-script
+            "Check tomcat is at /var/lib/tomcat6/"
+            (if-not (directory? "/var/lib/tomcat6/")
+              (do
+                (println "Tomcat not installed at expected location")
+                (exit 1))))))
          (first
           (build-resources
            []
