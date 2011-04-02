@@ -128,8 +128,9 @@
         (exec-script/exec-checked-script
          (format "Check tomcat is at %s" base-dir)
          (if-not (directory? ~base-dir)
-           (println "Tomcat not installed at expected location")
-           (exit 1))))))
+           (do
+             (println "Tomcat not installed at expected location")
+             (exit 1)))))))
 
 (defn tomcat
   "DEPRECATED: use install instead."
