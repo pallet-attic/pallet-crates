@@ -39,6 +39,9 @@
            []
            (package/package-manager :update)
            (package/package "tomcat6")
+           (directory/directory
+            (stevedore/script (user-home "tomcat6"))
+            :owner "tomcat6" :group "tomcat6" :mode "0755")
            (exec-script/exec-checked-script
             "Check tomcat is at /var/lib/tomcat6/"
             (if-not (directory? "/var/lib/tomcat6/")

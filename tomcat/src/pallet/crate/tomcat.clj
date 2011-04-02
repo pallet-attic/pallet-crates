@@ -31,6 +31,7 @@
    [pallet.resource.service :as service]
    [pallet.resource.exec-script :as exec-script]
    [pallet.request-map :as request-map]
+   [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [net.cgrand.enlive-html :as enlive]
    [clojure.contrib.string :as string]))
@@ -125,6 +126,9 @@
         (when-> (:purge options)
                 (directory/directory
                  tomcat-base :action :delete :recursive true :force true))
+        (directory/directory ;; fix jpackage ownership of tomcat home
+         (stevedore/script (user-home ~user))
+         :owner user :group group :mode "0755")
         (exec-script/exec-checked-script
          (format "Check tomcat is at %s" base-dir)
          (if-not (directory? ~base-dir)
