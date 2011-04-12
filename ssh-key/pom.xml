@@ -31,6 +31,8 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>automated-admin-user</artifactId>
+      <!-- must be a released version to prevent a cyclic dependency -->
+      <version>0.4.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
