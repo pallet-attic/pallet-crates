@@ -816,7 +816,7 @@
        :content (apply
                  str (hudson-maven-xml
                       (:node-type request) hudson-data-path args))
-       :owner user :group group)))))
+       :owner hudson-owner :group group :mode "0644")))))
 
 (resource/defcollect ant-config
   "Configure an ant tool installation descriptor for hudson.

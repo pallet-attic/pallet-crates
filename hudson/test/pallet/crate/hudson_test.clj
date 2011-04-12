@@ -192,7 +192,8 @@
             "/var/lib/hudson/hudson.tasks.Maven.xml"
             :content "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Maven_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Maven_-MavenInstallation>\n      <name>default maven</name>\n      <home>/var/lib/hudson/tools/default_maven</home>\n      \n    </hudson.tasks.Maven_-MavenInstallation>\n  </installations>\n</hudson.tasks.Maven_-DescriptorImpl>"
             :owner "root"
-            :group "tomcat6")))
+            :group "tomcat6"
+            :mode "0644")))
          (first
           (build-resources
            [:node-type {:image {:os-family :ubuntu}}
@@ -212,7 +213,8 @@
             "/var/lib/hudson/hudson.tasks.Ant.xml"
             :content "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Ant_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Ant_-AntInstallation>\n      <name>name</name>\n      <home>/some/path</home>\n      <properties>a=1\n</properties>\n    </hudson.tasks.Ant_-AntInstallation>\n  </installations>\n</hudson.tasks.Ant_-DescriptorImpl>"
             :owner "root"
-            :group "tomcat6")))
+            :group "tomcat6"
+            :mode "0664")))
          (first
           (build-resources
            [:node-type {:image {:os-family :ubuntu}}
