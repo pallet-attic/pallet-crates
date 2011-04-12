@@ -279,8 +279,28 @@
        (tomcat-undeploy))))
 
 (deftest publisher-test
-  (is (= "<hudson.tasks.ArtifactArchiver><artifacts>**/*.war</artifacts><latestOnly>false</latestOnly></hudson.tasks.ArtifactArchiver>"
-         (publisher-config [:artifact-archiver {:artifacts "**/*.war"}]))))
+  (testing "artifact archiver"
+    (is (= (str "<hudson.tasks.ArtifactArchiver>"
+                "<artifacts>**/*.war</artifacts><latestOnly>false</latestOnly>"
+                "</hudson.tasks.ArtifactArchiver>")
+           (publisher-config [:artifact-archiver {:artifacts "**/*.war"}]))))
+  (testing "build trigger"
+    (testing "default threshold"
+      (is (= (str "<hudson.tasks.BuildTrigger>"
+                  "<childProjects>a,b</childProjects>"
+                  "<threshold><name>SUCCESS</name>"
+                  "<ordinal>0</ordinal><color>BLUE</color></threshold>"
+                  "</hudson.tasks.BuildTrigger>")
+             (publisher-config [:build-trigger {:child-projects "a,b"}]))))
+    (testing "with unstable threshold"
+      (is (= (str "<hudson.tasks.BuildTrigger>"
+                  "<childProjects>a,b</childProjects>"
+                  "<threshold><name>UNSTABLE</name>"
+                  "<ordinal>1</ordinal><color>YELLOW</color></threshold>"
+                  "</hudson.tasks.BuildTrigger>")
+             (publisher-config
+              [:build-trigger
+               {:child-projects "a,b" :threshold :unstable}]))))))
 
 (def unsupported [{:os-family :debian}]) ; no tomcat6
 

@@ -487,6 +487,23 @@
             [:artifacts {} (:artifacts options)]
             [:latestOnly {} (truefalse (:latest-only options false))]])))
 
+(def
+  ^{:doc "Provides a map from stability to name, ordinal and color"}
+  threshold-levels
+  {:success {:name "SUCCESS" :ordinal 0 :color "BLUE"}
+   :unstable {:name "UNSTABLE" :ordinal 1 :color "YELLOW"}})
+
+(defmethod publisher-config :build-trigger
+  [[_ options]]
+  (let [threshold (threshold-levels (:threshold options :success))]
+    (with-out-str
+      (prxml [:hudson.tasks.BuildTrigger {}
+              [:childProjects {} (:child-projects options)]
+              [:threshold {}
+               [:name {} (:name threshold)]
+               [:ordinal {} (:ordinal threshold)]
+               [:color {} (:color threshold)]]]))))
+
 ;; todo
 ;; -    <authorOrCommitter>false</authorOrCommitter>
 ;; -    <clean>false</clean>
@@ -645,6 +662,7 @@
    - :properties specifies plugin properties, map from plugin keyword to a map
                  of tag values. Use :authorization-matrix to specify a sequence
                  of maps with :user and :permissions keys.
+   - :publishers specifies a map of publisher specfic options
    Other options are SCM specific.
 
    git:
@@ -681,7 +699,9 @@
          :properties {:disk-usage {}
                       :authorization-matrix
                         [{:user \"anonymous\"
-                          :permissions #{:item-read :item-build}}]})"
+                          :permissions #{:item-read :item-build}}]}
+         :publishers {:artifact-archiver
+                       {:artifacts \"**/*.war\" :latestOnly false}})"
   [request build-type job-name & {:keys [refspec receivepack uploadpack
                                          tagopt description branches scm
                                          scm-type merge-target
