@@ -110,7 +110,7 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>java</artifactId>
-              <version>0.4.1</version>
+              <version>0.4.2-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
@@ -120,7 +120,7 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>maven</artifactId>
-              <version>0.4.1</version>
+              <version>0.4.2-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
@@ -220,7 +220,7 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>ssh-key</artifactId>
-              <version>0.4.1</version>
+              <version>0.4.2-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
@@ -240,7 +240,7 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>tomcat</artifactId>
-              <version>0.4.1</version>
+              <version>0.4.3-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>

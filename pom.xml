@@ -28,6 +28,8 @@
     <!-- The standalone module packages all other modules. -->
     <module>pallet-crates-standalone</module>
 
+    <module>pallet-crates-test</module>
+
     <module>automated-admin-user</module>
     <module>bzr</module>
     <module>cassandra</module>
@@ -141,6 +143,12 @@
     <dependencies>
       <dependency>
         <groupId>org.cloudhoist</groupId>
+        <artifactId>pallet-crates-test</artifactId>
+        <version>0.4.0-SNAPSHOT</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
         <artifactId>automated-admin-user</artifactId>
         <version>0.4.0</version>
       </dependency>
@@ -232,7 +240,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>tomcat</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
