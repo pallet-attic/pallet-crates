@@ -102,8 +102,7 @@
                                (package/package-manager
                                 :add-scope :scope :non-free)
                                (package/package-manager :update)))
-               (when->
-                (= packager :yum)
+               (when-> use-jpackage
                 (package/add-jpackage)
                 (package/package-manager-update-jpackage)
                 (package/jpackage-utils)
@@ -113,8 +112,11 @@
                  (exec-script/exec-checked-script
                   "Unpack java rpm"
                   (heredoc "java-bin-resp" "A\n\n")
+                  (chmod "+x" ~rpm-bin)
                   (~rpm-bin < "java-bin-resp"))
-                 (package/package "java-1.6.0-sun-compat"))))
+                 (package/package
+                  "java-1.6.0-sun-compat"
+                  :enable ["jpackage-generic" "jpackage-generic-updates"]))))
        (package/package-manager :update)
        (for-> [vendor vendors]
               (for-> [component components]
