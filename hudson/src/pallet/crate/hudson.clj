@@ -450,6 +450,20 @@
   {:git "hudson.plugins.git.GitSCM"
    :svn "hudson.scm.SubversionSCM"})
 
+(def trigger-tags
+  {:scm-trigger "hudson.triggers.SCMTrigger"
+   :startup-trigger
+   "org.jvnet.hudson.plugins.triggers.startup.HudsonStartupTrigger"})
+
+(defmulti trigger-config
+  "trigger configuration"
+  (fn [[trigger options]] trigger))
+
+(defmethod trigger-config :default
+  [[trigger options]]
+  (with-out-str
+    (prxml [(keyword (trigger-tags trigger)) {} [:spec {} options]])))
+
 (defmulti publisher-config
   "Publisher configuration"
   (fn [[publisher options]] publisher))
@@ -566,7 +580,9 @@
                               (:aggregator-style-build options true)))
     [:ignoreUpstreamChanges] (xml/content
                               (truefalse
-                               (:ignore-upstream-changes options true))))
+                               (:ignore-upstream-changes options true)))
+    [:triggers]
+    (xml/html-content (string/join (map trigger-config (:triggers options)))))
    scm-type scms options))
 
 (defn ant-job-xml
@@ -816,7 +832,7 @@
        :content (apply
                  str (hudson-maven-xml
                       (:node-type request) hudson-data-path args))
-       :owner hudson-owner :group group :mode "0644")))))
+       :owner hudson-owner :group group :mode "0664")))))
 
 (resource/defcollect ant-config
   "Configure an ant tool installation descriptor for hudson.

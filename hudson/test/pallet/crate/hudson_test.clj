@@ -280,6 +280,20 @@
        (tomcat-deploy)
        (tomcat-undeploy))))
 
+(deftest trigger-test
+  (testing "scmtrigger"
+    (is (= (str "<hudson.triggers.SCMTrigger>"
+                "<spec>123<spec>"
+                "</hudson.triggers.SCMTrigger>")
+           (trigger-config [:scm-trigger "123"]))))
+  (testing "startup trigger"
+    (is
+     (=
+      (str "<org.jvnet.hudson.plugins.triggers.startup.HudsonStartupTrigger>"
+           "<spec><spec>"
+           "</org.jvnet.hudson.plugins.triggers.startup.HudsonStartupTrigger>")
+      (trigger-config [:startup-trigger ""])))))
+
 (deftest publisher-test
   (testing "artifact archiver"
     (is (= (str "<hudson.tasks.ArtifactArchiver>"
