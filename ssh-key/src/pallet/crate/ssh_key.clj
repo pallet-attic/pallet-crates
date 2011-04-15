@@ -1,4 +1,5 @@
 (ns pallet.crate.ssh-key
+  "Crate functions for manipulating SSH-keys"
   (:require
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
@@ -110,7 +111,8 @@
      (file/file (str path ".pub") :owner user :mode "0644"))))
 
 (defn record-public-key
-  [request user & {:keys [filename type]
+  "Record a public key"
+  [request user & {:keys [filename type parameter-path]
                    :or {type "rsa"} :as options}]
   (let [filename (or filename (ssh-default-filenames type))
         path (str (user-ssh-dir user) filename ".pub")]
@@ -121,9 +123,15 @@
          (resource/as-local-resource
           request
           (fn [request]
-            (parameter/assoc-for-target
-             request [:user (keyword user) (keyword filename)]
-             (slurp local-path)))))
+            (let [pub-key (slurp local-path)]
+              (if-not (string/blank? pub-key)
+                (if parameter-path
+                  (parameter/update-for-service
+                   request parameter-path
+                   (fn [keys] (conj (or keys #{}) pub-key)))
+                  (parameter/assoc-for-target
+                   request [:user (keyword user) (keyword filename)] pub-key))
+                request)))))
        path))))
 
 #_

@@ -16,6 +16,7 @@
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.format :as format]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.directory :as directory]
    [pallet.resource.user :as user]
@@ -34,8 +35,10 @@
 (defvar- *user-config-file* "users/config.xml")
 (defvar- *maven-file* "hudson.tasks.Maven.xml")
 (defvar- *maven2-job-config-file* "job/maven2_config.xml")
+(defvar- *ant-job-config-file* "job/ant_config.xml")
 (defvar- *git-file* "scm/git.xml")
 (defvar- *svn-file* "scm/svn.xml")
+(defvar- *ant-file* "hudson.tasks.Ant.xml")
 
 (defn path-for
   "Get the actual filename corresponding to a template."
@@ -447,6 +450,20 @@
   {:git "hudson.plugins.git.GitSCM"
    :svn "hudson.scm.SubversionSCM"})
 
+(def trigger-tags
+  {:scm-trigger "hudson.triggers.SCMTrigger"
+   :startup-trigger
+   "org.jvnet.hudson.plugins.triggers.startup.HudsonStartupTrigger"})
+
+(defmulti trigger-config
+  "trigger configuration"
+  (fn [[trigger options]] trigger))
+
+(defmethod trigger-config :default
+  [[trigger options]]
+  (with-out-str
+    (prxml [(keyword (trigger-tags trigger)) {} [:spec {} options]])))
+
 (defmulti publisher-config
   "Publisher configuration"
   (fn [[publisher options]] publisher))
@@ -483,6 +500,23 @@
     (prxml [:hudson.tasks.ArtifactArchiver {}
             [:artifacts {} (:artifacts options)]
             [:latestOnly {} (truefalse (:latest-only options false))]])))
+
+(def
+  ^{:doc "Provides a map from stability to name, ordinal and color"}
+  threshold-levels
+  {:success {:name "SUCCESS" :ordinal 0 :color "BLUE"}
+   :unstable {:name "UNSTABLE" :ordinal 1 :color "YELLOW"}})
+
+(defmethod publisher-config :build-trigger
+  [[_ options]]
+  (let [threshold (threshold-levels (:threshold options :success))]
+    (with-out-str
+      (prxml [:hudson.tasks.BuildTrigger {}
+              [:childProjects {} (:child-projects options)]
+              [:threshold {}
+               [:name {} (:name threshold)]
+               [:ordinal {} (:ordinal threshold)]
+               [:color {} (:color threshold)]]]))))
 
 ;; todo
 ;; -    <authorOrCommitter>false</authorOrCommitter>
@@ -546,6 +580,47 @@
                               (:aggregator-style-build options true)))
     [:ignoreUpstreamChanges] (xml/content
                               (truefalse
+                               (:ignore-upstream-changes options true)))
+    [:triggers]
+    (xml/html-content (string/join (map trigger-config (:triggers options)))))
+   scm-type scms options))
+
+(defn ant-job-xml
+  "Generate ant job/config.xml content"
+  [node-type scm-type scms options]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *ant-job-config-file*) node-type [scm-type scms options]
+    [:daysToKeep] (enlive/transform-if-let [keep (:days-to-keep options)]
+                                           (xml/content (str keep)))
+    [:numToKeep] (enlive/transform-if-let [keep (:num-to-keep options)]
+                                          (xml/content (str keep)))
+    [:properties] (enlive/transform-if-let
+                   [properties (:properties options)]
+                   (xml/content (map plugin-property properties)))
+    [:scm] (xml/substitute
+            (when scm-type
+              (output-scm-for scm-type node-type (first scms) options)))
+    [:concurrentBuild] (xml/content
+                        (truefalse (:concurrent-build options false)))
+    [:builders xml/first-child] (xml/clone-for
+                                 [task (:ant-tasks options)]
+                                 [:targets] (xml/content (:targets task))
+                                 [:antName] (xml/content (:ant-name task))
+                                 [:buildFile] (xml/content
+                                               (:build-file task))
+                                 [:properties] (xml/content
+                                                (format/name-values
+                                                 (:properties task)
+                                                 :separator "=")))
+    [:publishers]
+    (xml/html-content
+     (string/join (map publisher-config (:publishers options))))
+    [:aggregatorStyleBuild] (xml/content
+                             (truefalse
+                              (:aggregator-style-build options true)))
+    [:ignoreUpstreamChanges] (xml/content
+                              (truefalse
                                (:ignore-upstream-changes options true))))
    scm-type scms options))
 
@@ -557,6 +632,11 @@
   [build-type node-type scm-type scms options]
   (let [scm-type (or scm-type (some determine-scm-type scms))]
     (maven2-job-xml node-type scm-type scms options)))
+
+(defmethod output-build-for :ant
+  [build-type node-type scm-type scms options]
+  (let [scm-type (or scm-type (some determine-scm-type scms))]
+    (ant-job-xml node-type scm-type scms options)))
 
 (defn credential-entry
   "Produce an xml representation for a credential entry in a credential store"
@@ -598,6 +678,7 @@
    - :properties specifies plugin properties, map from plugin keyword to a map
                  of tag values. Use :authorization-matrix to specify a sequence
                  of maps with :user and :permissions keys.
+   - :publishers specifies a map of publisher specfic options
    Other options are SCM specific.
 
    git:
@@ -634,7 +715,9 @@
          :properties {:disk-usage {}
                       :authorization-matrix
                         [{:user \"anonymous\"
-                          :permissions #{:item-read :item-build}}]})"
+                          :permissions #{:item-read :item-build}}]}
+         :publishers {:artifact-archiver
+                       {:artifacts \"**/*.war\" :latestOnly false}})"
   [request build-type job-name & {:keys [refspec receivepack uploadpack
                                          tagopt description branches scm
                                          scm-type merge-target
@@ -706,6 +789,28 @@
    maven-tasks))
 
 
+;; todo: merge with hudson-maven-xml
+;; maven should look more like this - with the automated naming etc
+;; at a higher level.
+(defn hudson-tool-install-xml
+  [name path properties]
+  (xml/transformation
+   [:name] (xml/content name)
+   [:home] (xml/content path)
+   [:properties] (xml/content (format/name-values properties :separator "="))))
+
+(defn hudson-ant-xml
+  "Generate hudson.task.Ant.xml content"
+  [node-type hudson-data-path installations]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *ant-file*) node-type
+    [installs]
+    [:installations xml/first-child] (xml/clone-for
+                                      [[name path properties] installs]
+                                      (hudson-tool-install-xml
+                                       name path properties)))
+   installations))
 
 (resource/defcollect maven-config
   "Configure a maven instance for hudson."
@@ -714,6 +819,7 @@
    [request args]
    (let [group (parameter/get-for-target request [:hudson :group])
          hudson-owner (parameter/get-for-target request [:hudson :owner])
+         user (parameter/get-for-target request [:hudson :user])
          hudson-data-path (parameter/get-for-target
                            request [:hudson :data-path])]
      (stevedore/do-script
@@ -726,7 +832,31 @@
        :content (apply
                  str (hudson-maven-xml
                       (:node-type request) hudson-data-path args))
-       :owner hudson-owner :group group)))))
+       :owner hudson-owner :group group :mode "0664")))))
+
+(resource/defcollect ant-config
+  "Configure an ant tool installation descriptor for hudson.
+   - `name`        a name for this installation of ant
+   - `path`        a path to the home of this ant installation
+   - `properties`  a properties map for this installation of ant"
+  {:use-arglist [request name path properties]}
+  (hudson-ant*
+   [request args]
+   (let [group (parameter/get-for-target request [:hudson :group])
+         hudson-owner (parameter/get-for-target request [:hudson :owner])
+         user (parameter/get-for-target request [:hudson :user])
+         hudson-data-path (parameter/get-for-target
+                           request [:hudson :data-path])]
+     (stevedore/do-script
+      (directory*
+       request hudson-data-path :owner hudson-owner :group group :mode "775")
+      (remote-file*
+       request
+       (str hudson-data-path "/" *ant-file*)
+       :content (apply
+                 str (hudson-ant-xml
+                      (:node-type request) hudson-data-path args))
+       :owner hudson-owner :group group :mode "0664")))))
 
 (defn maven
   [request name version]
@@ -740,6 +870,20 @@
       :maven-home (hudson-tool-path hudson-data-path name)
       :version version :owner hudson-owner :group group)
      (maven-config name version))))
+
+(defn ant
+  "Install and use ant with hudson"
+  [request name version]
+  (let [group (parameter/get-for-target request [:hudson :group])
+        hudson-owner (parameter/get-for-target request [:hudson :owner])
+        hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])]
+    (->
+     request
+     #_(ant/download
+      :ant-home (hudson-tool-path hudson-data-path name)
+      :version version :owner hudson-owner :group group)
+     (ant-config name (hudson-tool-path hudson-data-path name) nil))))
 
 (defn hudson-user-xml
   "Generate user config.xml content"
