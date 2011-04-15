@@ -9,7 +9,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet-crates</artifactId>
-  <version>0.4.3-SNAPSHOT</version>
+  <version>0.4.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>pallet crates</name>
   <description>Pallet Crates</description>
@@ -144,227 +144,227 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>pallet-crates-test</artifactId>
-        <version>0.4.0-SNAPSHOT</version>
+        <version>0.4.1-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>automated-admin-user</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>bzr</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>cassandra</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>chef</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>cloudkick</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>couchdb</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>crontab</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>cruise-control-rb</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>etc-default</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>etc-hosts</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>ganglia</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>git</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>github</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>gpg</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>haproxy</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>hudson</artifactId>
         <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
+        <artifactId>bzr</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>cassandra</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>chef</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>cloudkick</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>couchdb</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>crontab</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>cruise-control-rb</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>etc-default</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>etc-hosts</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ganglia</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>git</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>github</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>gpg</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>haproxy</artifactId>
+        <version>0.4.3-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>hudson</artifactId>
+        <version>0.4.4-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
         <artifactId>iozone</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>iptables</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>java</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>jetty</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>maven</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>monit</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>mysql</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>nagios</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>nagios-config</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>nginx</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>node-js</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>package-builder</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>php</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>postfix</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>postgres</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>public-dns-if-no-nameserver</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>rabbitmq</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>resolv</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>ruby</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>rubygems</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>sphinx</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>splunk</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>squeak</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>ssh</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>ssh-key</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>squid</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>sudoers</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>syslog-ng</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -374,27 +374,27 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>upstart</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>vpnc</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>wordpress</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>zeromq</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>zookeeper</artifactId>
-        <version>0.4.2-SNAPSHOT</version>
+        <version>0.4.3-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
