@@ -240,7 +240,7 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>tomcat</artifactId>
-              <version>0.4.3-SNAPSHOT</version>
+              <version>0.4.2-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
