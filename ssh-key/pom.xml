@@ -14,12 +14,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet</artifactId>
-      <version>0.4.16-SNAPSHOT</version>
+      <version>0.4.16</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet</artifactId>
-      <version>0.4.16-SNAPSHOT</version>
+      <version>0.4.16</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
