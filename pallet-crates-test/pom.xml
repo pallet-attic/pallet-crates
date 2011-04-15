@@ -13,6 +13,14 @@
   <packaging>jar</packaging>
 
   <!-- we build a jar, rather than a test jar, as we can not switch off  -->
-  <!-- the default jar anyway  -->
+  <!-- the default jar anyway -->
 
+  <dependencies>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.14</version>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
 </project>
