@@ -26,10 +26,13 @@
    [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
    [pallet.template :as template]
    [pallet.thread-expr :as thread-expr]
    [net.cgrand.enlive-html :as enlive-html]
+   [net.cgrand.enlive-html :as enlive]
    [clojure.contrib.prxml :as prxml]
+   [clojure.contrib.string :as string]
    [clojure.string :as string]))
 
 (def
@@ -94,12 +97,21 @@
         group (or group tomcat-user)
         service (or service package)
         base-dir (or base-dir (str tomcat-base package "/"))
-        config-dir (str tomcat-config-root package "/")]
+        config-dir (str tomcat-config-root package "/")
+        use-jpackage (and
+                      (= :centos (session/os-family request))
+                      (re-matches
+                       #"5\.[0-5]" (session/os-version request)))
+        options (if use-jpackage
+                  (assoc options
+                    :enable ["jpackage-generic" "jpackage-generic-updates"])
+                  options)]
     (-> session
         (thread-expr/when->
-         (and (= :centos (session/os-family session))
-              (re-matches #"5\.[0-5]" (session/os-version session)))
-         (package/add-jpackage :releasever "5.0"))
+         use-jpackage
+         (package/add-jpackage :releasever "5.0")
+         (package/package-manager-update-jpackage)
+         (package/jpackage-utils))
         (thread-expr/when-> (= :install (:action options :install))
                 (parameter/assoc-for-target
                  [:tomcat :base] base-dir
@@ -113,7 +125,16 @@
          (apply concat options))
         (thread-expr/when-> (:purge options)
                 (directory/directory
-                 tomcat-base :action :delete :recursive true :force true)))))
+                 tomcat-base :action :delete :recursive true :force true))
+        (directory/directory ;; fix jpackage ownership of tomcat home
+         (stevedore/script (user-home ~user))
+         :owner user :group group :mode "0755")
+        (exec-script/exec-checked-script
+         (format "Check tomcat is at %s" base-dir)
+         (if-not (directory? ~base-dir)
+           (do
+             (println "Tomcat not installed at expected location")
+             (exit 1)))))))
 
 (defn tomcat
   "DEPRECATED: use install instead."

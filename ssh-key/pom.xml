@@ -10,6 +10,27 @@
   <artifactId>ssh-key</artifactId>
   <version>0.5.0-SNAPSHOT</version>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet-crates-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <profile>
+      <id>live-test</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.cloudhoist</groupId>
+          <artifactId>automated-admin-user</artifactId>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
   <repositories>
     <repository>
       <id>sonatype</id>

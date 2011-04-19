@@ -11,6 +11,7 @@
    [pallet.live-test :as live-test]
    [pallet.phase :as phase]
    [pallet.script :as script]
+   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils])
   (:use clojure.test
@@ -144,10 +145,14 @@
                     (package/package-manager :update)
                     (automated-admin-user/automated-admin-user))
         :configure (phase/phase-fn
-                    (remote-file/remote-file
-                     "jdk.bin"
-                     :local-file "artifacts/jdk-6u23-linux-x64-rpm.bin"
-                     :mode "755")
+                    (thread-expr/arg->
+                     [session]
+                     (remote-file/remote-file
+                      "jdk.bin"
+                      :local-file (if (session/is-64bit? session)
+                                    "artifacts/jdk-6u23-linux-x64-rpm.bin"
+                                    "artifacts/jdk-6u24-linux-i586-rpm.bin")
+                      :mode "755"))
                     (java :sun :rpm-bin "./jdk.bin"))
         :verify (phase/phase-fn
                  (exec-script/exec-checked-script

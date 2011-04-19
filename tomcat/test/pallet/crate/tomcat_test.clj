@@ -10,8 +10,10 @@
     [pallet.blobstore :as blobstore]
     [pallet.build-actions :as build-actions]
     [pallet.action :as action]
+    [pallet.compute :as compute]
     [pallet.core :as core]
     [pallet.crate.automated-admin-user :as automated-admin-user]
+    [pallet.crate.java :as java]
     [pallet.crate.tomcat :as tc]
     [pallet.crate.tomcat :as tomcat]
     [pallet.enlive :as enlive]
@@ -31,7 +33,16 @@
           (build-actions/build-actions
            {}
            (package/package-manager :update)
-           (package/package "tomcat6")))
+           (package/package "tomcat6")
+           (directory/directory
+            (stevedore/script (user-home "tomcat6"))
+            :owner "tomcat6" :group "tomcat6" :mode "0755")
+           (exec-script/exec-checked-script
+            "Check tomcat is at /var/lib/tomcat6/"
+            (if-not (directory? "/var/lib/tomcat6/")
+              (do
+                (println "Tomcat not installed at expected location")
+                (exit 1))))))
          (first
           (build-actions/build-actions
            {}
@@ -356,8 +367,15 @@
   ^{:doc "An html file for tomcat to server to verify we have it running."}
   index-html
   "<html>
-<head><title>Pallet-live-test</title></head>
-<body>LIVE TEST</body></html>")
+<head>
+  <title>Pallet-live-test</title>
+  <%@ page language=\"java\" %>
+</head>
+<body>
+<h3><%= java.net.InetAddress.getLocalHost().getHostAddress() %></h2>
+<h3><%= java.lang.System.getProperty(\"java.vendor\") %></h2>
+LIVE TEST
+</body></html>")
 
 (def
   ^{:doc "An application configuration context"}
@@ -370,31 +388,29 @@ swallowOutput=\"true\">
 </Context>")
 
 (deftest live-test
-  (doseq [image [{:os-family :ubuntu :os-version-matches "10.04"}
-                 {:os-family :ubuntu :os-version-matches "10.10"}
-                 {:os-family :centos :os-version-matches "5.5"}
-                 {:os-family :centos :os-version-matches "5.3"}]]
-    (live-test/test-nodes
-     [compute node-map node-types]
-     {:tomcat
-      {:image image
-       :count 1
-       :phases {:bootstrap (phase/phase-fn
-                            (automated-admin-user/automated-admin-user))
-                :configure (phase/phase-fn
-                            (tomcat/install :version 6)
-                            (tomcat/server-configuration (server))
-                            (tomcat/application-conf
-                             "pallet-live-test" application-config)
-                            (thread-expr/let-with-arg->
+  (live-test/test-for
+   [image live-test/*images*]
+   (live-test/test-nodes
+    [compute node-map node-types]
+    {:tomcat
+     {:image image
+      :count 1
+      :phases {:bootstrap (phase/phase-fn
+                           (automated-admin-user/automated-admin-user))
+               :configure (phase/phase-fn
+                           (tomcat/install :version 6)
+                           (tomcat/server-configuration (server))
+                           (tomcat/application-conf
+                            "pallet-live-test" application-config)
+                           (thread-expr/let-with-arg->
                              request
                              [tomcat-base (parameter/get-for-target
                                            request [:tomcat :base])]
                              (directory/directory
                               (str tomcat-base "webapps/pallet-live-test/"))
                              (remote-file/remote-file
-                              (str tomcat-base
-                                   "webapps/pallet-live-test/index.html")
+                              (str
+                               tomcat-base "webapps/pallet-live-test/index.jsp")
                               :content index-html :literal true
                               :flag-on-changed
                               tomcat/tomcat-config-changed-flag))
@@ -408,3 +424,50 @@ swallowOutput=\"true\">
                             "-O-" "http://localhost:8080/pallet-live-test/")
                            (grep (quoted "LIVE TEST")))))}}}
      (core/lift (:tomcat node-types) :phase :verify :compute compute))))
+
+(deftest live-sun-jdk-test
+  (live-test/test-for
+   [image live-test/*images*]
+   (live-test/test-nodes
+    [compute node-map node-types]
+    {:tomcatsun
+     {:image image
+      :count 1
+      :phases {:bootstrap (resource/phase
+                           (automated-admin-user/automated-admin-user))
+               :configure (fn [request]
+                            (->
+                             request
+                             (install :version 6)
+                             (remote-file/remote-file
+                              "jdk.bin"
+                              :local-file
+                              (if (compute/is-64bit? (:target-node request))
+                                "artifacts/jdk-6u23-linux-x64-rpm.bin"
+                                "artifacts/jdk-6u24-linux-i586-rpm.bin")
+                              :mode "755")
+                             (java/java :sun :jdk :rpm-bin "./jdk.bin")
+                             (server-configuration (server))
+                             (application-conf
+                              "pallet-live-test" application-config)
+                             (thread-expr/let-with-arg->
+                               request
+                               [tomcat-base (parameter/get-for-target
+                                             request [:tomcat :base])]
+                               (directory/directory
+                                (str tomcat-base "webapps/pallet-live-test/"))
+                               (remote-file/remote-file
+                                (str
+                                 tomcat-base
+                                 "webapps/pallet-live-test/index.jsp")
+                                :content index-html :literal true
+                                :flag-on-changed tomcat-config-changed-flag))
+                             (init-service
+                              :if-config-changed true :action :restart)))
+               :verify (resource/phase
+                        (exec-script/exec-checked-script
+                         "check tomcat is running"
+                         (pipe
+                          (wget "-O-" "http://localhost:8080/pallet-live-test/")
+                          (grep -i (quoted "sun")))))}}}
+    (core/lift (:tomcatsun node-types) :phase :verify :compute compute))))

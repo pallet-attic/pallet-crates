@@ -7,18 +7,20 @@
     <version>0.5.0-SNAPSHOT</version>
     <relativePath>..</relativePath>
   </parent>
-  <artifactId>nginx</artifactId>
+  <artifactId>pallet-crates-test</artifactId>
   <version>0.5.0-SNAPSHOT</version>
+  <description>Provides test resources</description>
+  <packaging>jar</packaging>
+
+  <!-- we build a jar, rather than a test jar, as we can not switch off  -->
+  <!-- the default jar anyway -->
 
   <dependencies>
     <dependency>
-      <groupId>org.cloudhoist</groupId>
-      <artifactId>rubygems</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.cloudhoist</groupId>
-      <artifactId>pallet-crates-test</artifactId>
-      <scope>test</scope>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.14</version>
+      <optional>true</optional>
     </dependency>
   </dependencies>
 </project>

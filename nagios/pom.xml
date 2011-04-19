@@ -9,4 +9,12 @@
   </parent>
   <artifactId>nagios</artifactId>
   <version>0.5.0-SNAPSHOT</version>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet-crates-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

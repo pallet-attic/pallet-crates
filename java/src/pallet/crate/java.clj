@@ -49,6 +49,14 @@
 
 (def ubuntu-partner-url "http://archive.canonical.com/ubuntu")
 
+(defn- use-jpackage
+  "Determine if jpackage should be used"
+  [session]
+  (let [os-family (session/os-family session)]
+    (and
+     (= :centos os-family)
+     (re-matches #"5\.[0-5]" (session/os-version session)))))
+
 (defn java
   "Install java. Options can be :sun, :openjdk, :jdk, :jre.
    By default openjdk will be installed.
@@ -61,8 +69,8 @@
         components (or (seq (filter #{:jdk :jre} options))
                        [:jdk])
         packager (session/packager session)
-        os-family (session/os-family session)]
-
+        os-family (session/os-family session)
+        use-jpackage (use-jpackage session)]
     (let [vc (fn [session vendor component]
                (let [pkgs (java-package-name packager vendor component)]
                  (->
@@ -93,17 +101,21 @@
                                (package/package-manager
                                 :add-scope :scope :non-free)
                                (package/package-manager :update)))
-               (when->
-                (= packager :yum)
-                (package/package "jpackage-utils")
+               (when-> use-jpackage
+                (package/add-jpackage)
+                (package/package-manager-update-jpackage)
+                (package/jpackage-utils)
                 (when-let->
                  [rpm-bin (:rpm-bin
                            (apply hash-map (remove all-keywords options)))]
                  (exec-script/exec-checked-script
                   "Unpack java rpm"
                   (heredoc "java-bin-resp" "A\n\n")
+                  (chmod "+x" ~rpm-bin)
                   (~rpm-bin < "java-bin-resp"))
-                 (package/package "java-1.6.0-sun-compat"))))
+                 (package/package
+                  "java-1.6.0-sun-compat"
+                  :enable ["jpackage-generic" "jpackage-generic-updates"]))))
        (package/package-manager :update)
        (for-> [vendor vendors]
               (for-> [component components]

@@ -17,5 +17,16 @@
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>java</artifactId>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet-crates-test</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

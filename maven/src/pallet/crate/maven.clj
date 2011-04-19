@@ -3,6 +3,7 @@
    [pallet.session :as session]
    [pallet.action :as action]
    [pallet.action.package :as package]
+   [pallet.action.package.jpackage :as jpackage]
    [pallet.action.remote-directory :as remote-directory])
   (:use
    pallet.thread-expr))
@@ -31,11 +32,24 @@
    :md5 (maven-download-md5 version)
    :unpack :tar :tar-options "xj"))
 
+
 (defn package
-  [session]
-  (->
-   session
-   (when->
-    (= :amzn-linux (session/os-family session))
-    (package/add-jpackage :releasever "5.0"))
-   (package/package "maven2")))
+  [session & {:keys [package-name] :or {package-name "maven2"} :as options}]
+  (let [use-jpackage (or
+                      (= :amzn-linux (session/os-family session))
+                      (and
+                       (= :centos (session/os-family session))
+                       (re-matches
+                        #"5\.[0-5]" (session/os-version session))))
+        options (if use-jpackage
+                  (assoc options
+                    :enable ["jpackage-generic" "jpackage-generic-updates"])
+                  options)]
+    (->
+     session
+     (when-> use-jpackage
+      (jpackage/add-jpackage :releasever "5.0")
+      (jpackage/package-manager-update-jpackage)
+      (jpackage/jpackage-utils))
+     (apply-map-> package/package package-name options))))
+
