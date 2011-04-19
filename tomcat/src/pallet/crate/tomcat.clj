@@ -19,6 +19,7 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.package :as package]
+   [pallet.action.package.jpackage :as jpackage]
    [pallet.action.remote-file :as remote-file]
    [pallet.action.service :as service]
    [pallet.enlive :as enlive]
@@ -30,9 +31,7 @@
    [pallet.template :as template]
    [pallet.thread-expr :as thread-expr]
    [net.cgrand.enlive-html :as enlive-html]
-   [net.cgrand.enlive-html :as enlive]
    [clojure.contrib.prxml :as prxml]
-   [clojure.contrib.string :as string]
    [clojure.string :as string]))
 
 (def
@@ -99,9 +98,9 @@
         base-dir (or base-dir (str tomcat-base package "/"))
         config-dir (str tomcat-config-root package "/")
         use-jpackage (and
-                      (= :centos (session/os-family request))
+                      (= :centos (session/os-family session))
                       (re-matches
-                       #"5\.[0-5]" (session/os-version request)))
+                       #"5\.[0-5]" (session/os-version session)))
         options (if use-jpackage
                   (assoc options
                     :enable ["jpackage-generic" "jpackage-generic-updates"])
@@ -109,9 +108,9 @@
     (-> session
         (thread-expr/when->
          use-jpackage
-         (package/add-jpackage :releasever "5.0")
-         (package/package-manager-update-jpackage)
-         (package/jpackage-utils))
+         (jpackage/add-jpackage :releasever "5.0")
+         (jpackage/package-manager-update-jpackage)
+         (jpackage/jpackage-utils))
         (thread-expr/when-> (= :install (:action options :install))
                 (parameter/assoc-for-target
                  [:tomcat :base] base-dir

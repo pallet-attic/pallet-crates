@@ -14,6 +14,7 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.package :as package]
+   [pallet.action.package.rpmforge :as rpmforge]
    [pallet.action.remote-file :as remote-file]
    [pallet.script.lib :as lib]
    [pallet.session :as session]
@@ -38,7 +39,7 @@
    (->
     session
     (thread-expr/when-> (= :centos (session/os-family session))
-                        (package/add-rpmforge)
+                        (rpmforge/add-rpmforge)
                         (package/package-manager :update))
     (package/package "vpnc")
     (file/file (str config-home "/vpnc-script") :mode "0755")

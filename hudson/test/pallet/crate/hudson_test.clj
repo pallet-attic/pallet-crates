@@ -169,12 +169,12 @@
                        [["name" "2.2.0"]]))))))
 
 (deftest hudson-ant-xml-test
-  (core/defnode test-node {:os-family :ubuntu})
-  (is (= "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Ant_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Ant_-AntInstallation>\n      <name>name</name>\n      <home>/some/path</home>\n      <properties>a=1\n</properties>\n    </hudson.tasks.Ant_-AntInstallation>\n  </installations>\n</hudson.tasks.Ant_-DescriptorImpl>"
-         (apply str (hudson-ant-xml
-                      test-node
-                      "/var/lib/hudson"
-                      [["name" "/some/path" {:a 1}]])))))
+  (let [test-node (core/group-spec "test-node" :image {:os-family :ubuntu})]
+    (is (= "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Ant_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Ant_-AntInstallation>\n      <name>name</name>\n      <home>/some/path</home>\n      <properties>a=1\n</properties>\n    </hudson.tasks.Ant_-AntInstallation>\n  </installations>\n</hudson.tasks.Ant_-DescriptorImpl>"
+           (apply str (hudson-ant-xml
+                       {:server test-node}
+                       "/var/lib/hudson"
+                       [["name" "/some/path" {:a 1}]]))))))
 
 (deftest hudson-maven-test
   (is (= (first
@@ -206,8 +206,8 @@
 
 (deftest hudson-ant-test
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "775")
            (remote-file/remote-file
@@ -217,12 +217,12 @@
             :group "tomcat6"
             :mode "0664")))
          (first
-          (build-resources
-           [:node-type {:image {:os-family :ubuntu}}
+          (build-actions/build-actions
+           {:server {:image {:os-family :ubuntu}}
             :parameters {:host
                          {:id {:hudson {:user "tomcat6" :group "tomcat6"
                                         :owner "root"
-                                        :data-path "/var/lib/hudson"}}}}]
+                                        :data-path "/var/lib/hudson"}}}}}
            (ant-config "name" "/some/path" {:a 1}))))))
 
 (deftest plugin-test

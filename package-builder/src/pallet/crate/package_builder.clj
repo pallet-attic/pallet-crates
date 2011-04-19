@@ -11,6 +11,7 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.package :as package]
+   [pallet.action.package.epel :as epel]
    [pallet.action.remote-file :as remote-file]
    [pallet.action.user :as user]
    [pallet.stevedore :as stevedore]
@@ -47,7 +48,7 @@
         base-dir (or base-dir (str home "/rpmbuild"))]
     (->
      session
-     (package/add-epel)
+     (epel/add-epel)
      (package/package-manager :update)
      (package/package "rpm-build")
      (package/package "redhat-rpm-config")

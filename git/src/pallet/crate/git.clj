@@ -3,6 +3,7 @@
   (:require
    [pallet.session :as session]
    [pallet.action.package :as package]
+   [pallet.action.package.epel :as epel]
    [pallet.thread-expr :as thread-expr]))
 
 (defn git
@@ -12,7 +13,7 @@
    session
    (thread-expr/when->
     (#{:amzn-linux :centos} (session/os-family session))
-    (package/add-epel :version "5-4"))
+    (epel/add-epel :version "5-4"))
    (package/package-manager :update)
    (package/packages
     :yum ["git" "git-email"]

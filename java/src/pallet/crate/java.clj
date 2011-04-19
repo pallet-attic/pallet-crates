@@ -10,6 +10,7 @@
    [pallet.action :as action]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.package :as package]
+   [pallet.action.package.jpackage :as jpackage]
    [pallet.action.remote-file :as remote-file]
    [pallet.script :as script]
    [pallet.session :as session]
@@ -101,21 +102,24 @@
                                (package/package-manager
                                 :add-scope :scope :non-free)
                                (package/package-manager :update)))
-               (when-> use-jpackage
-                (package/add-jpackage)
-                (package/package-manager-update-jpackage)
-                (package/jpackage-utils)
-                (when-let->
-                 [rpm-bin (:rpm-bin
-                           (apply hash-map (remove all-keywords options)))]
-                 (exec-script/exec-checked-script
-                  "Unpack java rpm"
-                  (heredoc "java-bin-resp" "A\n\n")
-                  (chmod "+x" ~rpm-bin)
-                  (~rpm-bin < "java-bin-resp"))
-                 (package/package
-                  "java-1.6.0-sun-compat"
-                  :enable ["jpackage-generic" "jpackage-generic-updates"]))))
+               (when->
+                use-jpackage
+                (jpackage/add-jpackage)
+                (jpackage/package-manager-update-jpackage)
+                (jpackage/jpackage-utils))
+               (when-let->
+                [rpm-bin (:rpm-bin
+                          (apply hash-map (remove all-keywords options)))]
+                (exec-script/exec-checked-script
+                 "Unpack java rpm"
+                 (heredoc "java-bin-resp" "A\n\n")
+                 (chmod "+x" ~rpm-bin)
+                 (~rpm-bin < "java-bin-resp")))
+               (when->
+                use-jpackage
+                (package/package
+                 "java-1.6.0-sun-compat"
+                 :enable ["jpackage-generic" "jpackage-generic-updates"])))
        (package/package-manager :update)
        (for-> [vendor vendors]
               (for-> [component components]

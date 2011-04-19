@@ -21,6 +21,7 @@
     [pallet.parameter :as parameter]
     [pallet.parameter-test :as parameter-test]
     [pallet.phase :as phase]
+    [pallet.stevedore :as stevedore]
     [pallet.thread-expr :as thread-expr])
   (:use
    clojure.test
@@ -433,12 +434,12 @@ swallowOutput=\"true\">
     {:tomcatsun
      {:image image
       :count 1
-      :phases {:bootstrap (resource/phase
+      :phases {:bootstrap (phase/phase-fn
                            (automated-admin-user/automated-admin-user))
                :configure (fn [request]
                             (->
                              request
-                             (install :version 6)
+                             (tomcat/install :version 6)
                              (remote-file/remote-file
                               "jdk.bin"
                               :local-file
@@ -447,8 +448,8 @@ swallowOutput=\"true\">
                                 "artifacts/jdk-6u24-linux-i586-rpm.bin")
                               :mode "755")
                              (java/java :sun :jdk :rpm-bin "./jdk.bin")
-                             (server-configuration (server))
-                             (application-conf
+                             (tomcat/server-configuration (server))
+                             (tomcat/application-conf
                               "pallet-live-test" application-config)
                              (thread-expr/let-with-arg->
                                request
@@ -461,10 +462,10 @@ swallowOutput=\"true\">
                                  tomcat-base
                                  "webapps/pallet-live-test/index.jsp")
                                 :content index-html :literal true
-                                :flag-on-changed tomcat-config-changed-flag))
-                             (init-service
+                                :flag-on-changed tomcat/tomcat-config-changed-flag))
+                             (tomcat/init-service
                               :if-config-changed true :action :restart)))
-               :verify (resource/phase
+               :verify (phase/phase-fn
                         (exec-script/exec-checked-script
                          "check tomcat is running"
                          (pipe

@@ -13,6 +13,7 @@
    [pallet.script :as script]
    [pallet.session :as session]
    [pallet.stevedore :as stevedore]
+   [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils])
   (:use clojure.test
         pallet.test-utils))

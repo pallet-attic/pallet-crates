@@ -7,6 +7,7 @@
    [pallet.session :as session]
    [pallet.action :as action]
    [pallet.action.package :as package]
+   [pallet.action.package.epel :as epel]
    [pallet.action.remote-file :as remote-file]
    [pallet.crate.etc-default :as etc-default]
    [clojure.contrib.logging :as logging]
@@ -45,7 +46,7 @@
   (-> session
       (when->
        (#{:amzn-linux :centos} (session/os-family session))
-       (package/add-epel :version "5-4"))
+       (epel/add-epel :version "5-4"))
       (package/package "haproxy")))
 
 (defmulti format-kv (fn format-kv-dispatch [k v & _] (class v)))

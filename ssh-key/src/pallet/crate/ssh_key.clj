@@ -128,7 +128,8 @@
                    (fn [keys] (conj (or keys #{}) pub-key)))
                   (parameter/assoc-for-target
                    session [:user (keyword user) (keyword filename)] pub-key))
-                session)))))
+                session)))
+          [session]))
        path))))
 
 #_

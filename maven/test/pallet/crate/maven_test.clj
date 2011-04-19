@@ -5,10 +5,12 @@
    pallet.test-utils)
   (:require
    [pallet.build-actions :as build-actions]
+   [pallet.action.exec-script :as exec-script]
    [pallet.action.remote-directory :as remote-directory]
    [pallet.core :as core]
    [pallet.crate.automated-admin-user :as automated-admin-user]
-   [pallet.live-test :as live-test]))
+   [pallet.live-test :as live-test]
+   [pallet.phase :as phase]))
 
 (deftest download-test
   (is (= (first
@@ -32,11 +34,11 @@
     {:maven
      {:image image
       :count 1
-      :phases {:bootstrap (resource/phase
+      :phases {:bootstrap (phase/phase-fn
                            (automated-admin-user/automated-admin-user))
-               :configure (resource/phase
+               :configure (phase/phase-fn
                            (package))
-               :verify (resource/phase
+               :verify (phase/phase-fn
                         (exec-script/exec-checked-script
                          "check mvn command exists"
                          (mvn -version)))}}}

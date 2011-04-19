@@ -7,6 +7,7 @@
    [pallet.action.remote-file :as remote-file]
    [pallet.action.service :only [service]]
    [pallet.action.user :as user]
+   [pallet.config-file.format :as format]
    [pallet.crate.maven :as maven]
    [pallet.crate.tomcat :as tomcat]
    [pallet.enlive :as enlive]
@@ -459,7 +460,7 @@
 (defmethod trigger-config :default
   [[trigger options]]
   (with-out-str
-    (prxml [(keyword (trigger-tags trigger)) {} [:spec {} options]])))
+    (prxml/prxml [(keyword (trigger-tags trigger)) {} [:spec {} options]])))
 
 (defmulti publisher-config
   "Publisher configuration"
@@ -509,12 +510,13 @@
   [[_ options]]
   (let [threshold (threshold-levels (:threshold options :success))]
     (with-out-str
-      (prxml [:hudson.tasks.BuildTrigger {}
-              [:childProjects {} (:child-projects options)]
-              [:threshold {}
-               [:name {} (:name threshold)]
-               [:ordinal {} (:ordinal threshold)]
-               [:color {} (:color threshold)]]]))))
+      (prxml/prxml
+       [:hudson.tasks.BuildTrigger {}
+        [:childProjects {} (:child-projects options)]
+        [:threshold {}
+         [:name {} (:name threshold)]
+         [:ordinal {} (:ordinal threshold)]
+         [:color {} (:color threshold)]]]))))
 
 ;; todo
 ;; -    <authorOrCommitter>false</authorOrCommitter>
@@ -586,10 +588,11 @@
 
 (defn ant-job-xml
   "Generate ant job/config.xml content"
-  [node-type scm-type scms options]
+  [session scm-type scms options]
   (enlive/xml-emit
    (enlive/xml-template
-    (path-for *ant-job-config-file*) node-type [scm-type scms options]
+    (path-for *ant-job-config-file*) session
+    [scm-type scms options]
     [:daysToKeep] (enlive/transform-if-let [keep (:days-to-keep options)]
                                            (xml/content (str keep)))
     [:numToKeep] (enlive/transform-if-let [keep (:num-to-keep options)]
@@ -599,7 +602,7 @@
                    (xml/content (map plugin-property properties)))
     [:scm] (xml/substitute
             (when scm-type
-              (output-scm-for scm-type node-type (first scms) options)))
+              (output-scm-for scm-type session (first scms) options)))
     [:concurrentBuild] (xml/content
                         (truefalse (:concurrent-build options false)))
     [:builders xml/first-child] (xml/clone-for
@@ -633,9 +636,9 @@
     (maven2-job-xml session scm-type scms options)))
 
 (defmethod output-build-for :ant
-  [build-type node-type scm-type scms options]
+  [build-type session scm-type scms options]
   (let [scm-type (or scm-type (some determine-scm-type scms))]
-    (ant-job-xml node-type scm-type scms options)))
+    (ant-job-xml session scm-type scms options)))
 
 (defn credential-entry
   "Produce an xml representation for a credential entry in a credential store"
@@ -853,8 +856,7 @@
       session
       (str hudson-data-path "/" *ant-file*)
       :content (apply
-                str (hudson-ant-xml
-                     (:node-type session) hudson-data-path args))
+                str (hudson-ant-xml session hudson-data-path args))
       :owner hudson-owner :group group :mode "0664"))))
 
 (defn maven

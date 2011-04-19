@@ -18,7 +18,8 @@
 
 (defn maven-download-url
   [version]
-  (str "http://mirrors.ibiblio.org/pub/mirrors/apache/maven/binaries/apache-maven-"
+  (str "http://mirrors.ibiblio.org/pub/mirrors/apache/"
+       "maven/binaries/apache-maven-"
        version "-bin.tar.bz2"))
 
 (defn download
@@ -52,4 +53,3 @@
       (jpackage/package-manager-update-jpackage)
       (jpackage/jpackage-utils))
      (apply-map-> package/package package-name options))))
-
