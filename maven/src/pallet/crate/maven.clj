@@ -13,7 +13,8 @@
 
 (defn maven-download-md5
   [version]
-  {"2.2.1" "c581a15cb0001d9b771ad6df7c8156f8"})
+  {"2.2.1" "c581a15cb0001d9b771ad6df7c8156f8"
+   "3.0.3" "507828d328eb3735103c0492443ef0f0"})
 
 (defn maven-download-url
   [version]
