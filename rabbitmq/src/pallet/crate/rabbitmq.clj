@@ -1,15 +1,15 @@
 (ns pallet.crate.rabbitmq
   (:require
-   [pallet.resource.package :as package]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.compute :as compute]
    [pallet.crate.etc-default :as etc-default]
    [pallet.crate.etc-hosts :as etc-hosts]
    [pallet.crate.iptables :as iptables]
    [pallet.parameter :as parameter]
-   [pallet.compute :as compute]
-   [pallet.request-map :as request-map]
+   [pallet.session :as session]
    [clojure.string :as string])
   (:use
    pallet.thread-expr))
@@ -72,42 +72,42 @@
      (str node-name "@" (compute/hostname node)))
    nodes))
 
-(defn- cluster-nodes-for-tag
-  "Create a node list for the specified tag"
-  [request tag]
-  (let [nodes (request-map/nodes-in-tag request tag)]
+(defn- cluster-nodes-for-group
+  "Create a node list for the specified group"
+  [session group]
+  (let [nodes (session/nodes-in-group session group)]
     (assert (seq nodes))
     (cluster-nodes
      (parameter/get-for
-      request
+      session
       [:host (keyword (compute/id (first nodes))) :rabbitmq :options :node-name]
       "rabbit")
      nodes)))
 
 (defn- default-cluster-nodes
-  [request options]
+  [session options]
   (cluster-nodes
    (:node-name options "rabbit")
-   (request-map/nodes-in-tag request)))
+   (session/nodes-in-group session)))
 
 (defn- configure
   "Write the configuration file, based on a hash map m, that is serialised as
-   erlang config.  By specifying :cluster tag, the current tag's rabbitmq
+   erlang config.  By specifying :cluster group, the current group's rabbitmq
    instances will be added as ram nodes to that cluster."
-  [request cluster config]
-  (let [options (parameter/get-for-target request [:rabbitmq :options] nil)
-        cluster-nodes (when cluster (cluster-nodes-for-tag request cluster))
+  [session cluster config]
+  (let [options (parameter/get-for-target session [:rabbitmq :options] nil)
+        cluster-nodes (when cluster (cluster-nodes-for-group session cluster))
         cluster-nodes (or cluster-nodes
                           (if-let [node-count (:node-count options)]
                             (when (> node-count 1)
-                              (default-cluster-nodes request options))))]
+                              (default-cluster-nodes session options))))]
     (->
-     request
-     (etc-hosts/hosts-for-tag (request-map/tag request))
+     session
+     (etc-hosts/hosts-for-group (session/group-name session))
      (when->
       (or cluster-nodes config)
       (remote-file/remote-file
-       (parameter/get-for-target request [:rabbitmq :config-file])
+       (parameter/get-for-target session [:rabbitmq :config-file])
        :content (erlang-config
                  (if cluster-nodes
                    (assoc-in config [:rabbit :cluster_nodes] cluster-nodes)
@@ -115,19 +115,19 @@
        :literal true))
      (when->
       cluster
-      (etc-hosts/hosts-for-tag cluster)))))
+      (etc-hosts/hosts-for-group cluster)))))
 
 (defn rabbitmq
   "Install rabbitmq from packages.
     :config map   - erlang configuration, specified as a map
                     from application to attribute value map.
-    :cluster tag  - If specified, then this tag will be ram nodes for the
-                    given tag's disk cluster."
-  [request & {:keys [node node-count mnesia-base log-base node-ip-address
+    :cluster group  - If specified, then this group will be ram nodes for the
+                    given group's disk cluster."
+  [session & {:keys [node node-count mnesia-base log-base node-ip-address
                      node-port config-file config cluster]
               :as options}]
   (->
-   request
+   session
    (parameter/assoc-for-target
     [:rabbitmq :options] options
     [:rabbitmq :default-file] (or config-file "/etc/default/rabbitmq")
@@ -149,21 +149,21 @@
 
 (defn iptables-accept
   "Accept rabbitmq connectios, by default on port 5672"
-  ([request] (iptables-accept request 5672))
-  ([request port]
-     (iptables/iptables-accept-port request port)))
+  ([session] (iptables-accept session 5672))
+  ([session port]
+     (iptables/iptables-accept-port session port)))
 
 (defn iptables-accept-status
   "Accept rabbitmq status connections, by default on port 55672"
-  ([request] (iptables-accept request 55672))
-  ([request port]
-     (iptables/iptables-accept-port request port)))
+  ([session] (iptables-accept session 55672))
+  ([session port]
+     (iptables/iptables-accept-port session port)))
 
 (defn password
   "Change rabbitmq password."
-  [request user password]
+  [session user password]
   (->
-   request
+   session
    (exec-script/exec-checked-script
     "Change RabbitMQ password"
     (rabbitmqctl change_password ~user ~password))))
@@ -171,47 +171,47 @@
 ;; rabbitmq without iptablse
 #_
 (pallet.core/defnode a {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.phase/phase-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.phase/phase-fn
               (pallet.crate.rabbitmq/rabbitmq))
-  :rabbitmq-restart (pallet.resource/phase
-                     (pallet.resource.service/service
+  :rabbitmq-restart (pallet.phase/phase-fn
+                     (pallet.action.service/service
                       "rabbitmq-server" :action :restart)))
 
 ;; cluster
 #_
 (pallet.core/defnode a {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.phase/phase-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.phase/phase-fn
               (pallet.crate.rabbitmq/rabbitmq))
-  :rabbitmq-restart (pallet.resource/phase
-                     (pallet.resource.service/service
+  :rabbitmq-restart (pallet.phase/phase-fn
+                     (pallet.action.service/service
                       "rabbitmq-server" :action :restart)))
 
 #_
 (pallet.core/defnode ram-nodes {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.phase/phase-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.phase/phase-fn
               (pallet.crate.rabbitmq/rabbitmq))
-  :rabbitmq-restart (pallet.resource/phase
-                     (pallet.resource.service/service
+  :rabbitmq-restart (pallet.phase/phase-fn
+                     (pallet.action.service/service
                       "rabbitmq-server" :action :restart)))
 
 ;; rabbitmq with iptables
 #_
 (pallet.core/defnode a {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.phase/phase-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.phase/phase-fn
               (pallet.crate.iptables/iptables-accept-icmp)
               (pallet.crate.iptables/iptables-accept-established)
               (pallet.crate.ssh/iptables-throttle)
               (pallet.crate.ssh/iptables-accept)
               (pallet.crate.rabbitmq/rabbitmq :node-count 2)
               (pallet.crate.rabbitmq/iptables-accept))
-  :rabbitmq-restart (pallet.resource/phase
-                     (pallet.resource.service/service
+  :rabbitmq-restart (pallet.phase/phase-fn
+                     (pallet.action.service/service
                       "rabbitmq-server" :action :restart)))

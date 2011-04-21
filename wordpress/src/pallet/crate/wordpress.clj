@@ -1,23 +1,20 @@
 (ns pallet.crate.wordpress
   "Install wordpress"
   (:require
-   [pallet.resource.package :as package]
-   [pallet.crate.php :as php]
-   [pallet.crate.mysql :as mysql]
-   [pallet.resource.file :as file]
-   [pallet.resource.remote-file :as remote-file])
+   [pallet.action.package :as package]
+   [pallet.crate.mysql :as mysql])
   (:use
    pallet.thread-expr))
 
 (defn wordpress
   "Install wordpress - no configuration yet!"
-  [request
+  [session
    mysql-wp-username
    mysql-wp-password
    mysql-wp-database
    & extensions]
   (->
-   request
+   session
    (package/package "wordpress")
    (for-> [extension extensions]
      (package/package (format "wordpress-%s" (name extension))))

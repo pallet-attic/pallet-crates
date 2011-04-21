@@ -3,19 +3,18 @@
   (:require
    [pallet.argument :as argument]
    [pallet.compute :as compute]
-   [pallet.target :as target]
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
+   [pallet.session :as session]
+   [pallet.action :as action]
    [pallet.stevedore :as stevedore]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.file :as file]
-   [pallet.resource.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
    [pallet.crate.nagios-config :as nagios-config]
    [clojure.string :as string]))
 
 (defn install
-  [request]
-  (-> request
+  [session]
+  (-> session
       (package/packages
        :aptitude ["rrdtool" "librrds-perl" "librrd2-dev" "php5-gd"
                   "ganglia-monitor" "ganglia-webfrontend" "gmetad"])
@@ -23,11 +22,11 @@
        "/usr/share/ganglia-webfrontend" "/var/www/ganglia")))
 
 (defn monitor
-  [request]
-  (package/packages request :aptitude ["ganglia-monitor"]))
+  [session]
+  (package/packages session :aptitude ["ganglia-monitor"]))
 
 (defn data-source
-  [request [id {:keys [interval hosts] :or {interval 15}}]]
+  [session [id {:keys [interval hosts] :or {interval 15}}]]
   (format
    "data_source \"%s\" %d %s\n"
    id interval
@@ -35,13 +34,13 @@
                       hosts
                       (map
                        compute/primary-ip
-                       (request-map/nodes-in-tag request hosts))))))
+                       (session/nodes-in-group session hosts))))))
 
 (defn configure*
-  [request {:keys [data_sources rras trusted_hosts]
+  [session {:keys [data_sources rras trusted_hosts]
             :as options}]
   (str
-   (reduce #(str %1 (data-source request %2)) "" data_sources)
+   (reduce #(str %1 (data-source session %2)) "" data_sources)
    (when rras
      (reduce #(str %1 (format " \"%s\"" %2)) "RRAs" rras))
    (when trusted_hosts
@@ -59,12 +58,12 @@
   "Each data source is a map, keyed by data source name.
      :interval   (15s)
      :hosts      list of hosts, or tag name"
-  [request & {:keys [data_sources] :as options}]
+  [session & {:keys [data_sources] :as options}]
   (remote-file/remote-file
-   request
+   session
    "/etc/ganglia/gmetad.conf"
-   :content (argument/delayed [request]
-             (configure* request options))
+   :content (argument/delayed [session]
+             (configure* session options))
    :mode 644))
 
 
@@ -93,9 +92,9 @@
 
 (defn metrics
   "Configure metrics"
-  [request {:as options}]
+  [session {:as options}]
   (remote-file/remote-file
-   request
+   session
    "/etc/ganglia/gmond.conf"
    :content (format-value options)
    :mode 644))
@@ -325,17 +324,17 @@
 
 (defn nagios-monitor
   "Monitor ganglia web frontent using nagios."
-  [request & {:keys [url service_description]
+  [session & {:keys [url service_description]
       :or {service_description "Ganglia Web Frontend"}
       :as options}]
   (nagios-config/monitor-http
-   request
+   session
    :url "/ganglia"
    :service_description service_description))
 
 (defn check-ganglia-script
-  [request]
-  (-> request
+  [session]
+  (-> session
       (remote-file/remote-file
        "/usr/lib/nagios/plugins/check_ganglia.py"
        :template "crate/ganglia/check_ganglia.py"
@@ -346,11 +345,11 @@
        "$USER1$/check_ganglia.py -h $HOSTNAME$ -m $ARG1$ -w $ARG2$ -c $ARG3$")))
 
 (defn nagios-monitor-metric
-  [request metric warn critical
+  [session metric warn critical
    & {:keys [service_description servicegroups]
       :or {servicegroups [:ganglia-metrics]}}]
   (nagios-config/service
-   request
+   session
    {:service_description (or service_description (format "%s" metric))
     :servicegroups servicegroups
     :check_command (format "check_ganglia!%s!%s!%s" metric warn critical)}))
@@ -366,7 +365,8 @@
               (pallet.crate.ganglia/monitor)
               (pallet.crate.ganglia/metrics
                pallet.crate.ganglia/default-metrics)]
-  :restart-ganglia [(pallet.resource.service/service "gmetad" :action :restart)])
+  :restart-ganglia [(pallet.action.service/service
+                     "gmetad" :action :restart)])
 
 #_
 (pallet.core/defnode gm1
@@ -396,5 +396,5 @@
                "69.89.31.199" "hugoduncan.org")
               (pallet.crate.nagios-config/monitor-http
                :host_name "hugoduncan.org")]
- :restart-ganglia [(pallet.resource.service/service "gmetad" :action :restart)]
- :restart-nagios [(pallet.resource.service/service "nagios3" :action :restart)])
+ :restart-ganglia [(pallet.action.service/service "gmetad" :action :restart)]
+ :restart-nagios [(pallet.action.service/service "nagios3" :action :restart)])

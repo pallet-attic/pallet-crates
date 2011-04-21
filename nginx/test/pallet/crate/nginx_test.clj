@@ -1,20 +1,18 @@
 (ns pallet.crate.nginx-test
   (:use pallet.crate.nginx)
   (:require
-   [pallet.resource :as resource]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.file :as file]
-   [pallet.stevedore :as stevedore]
-   [pallet.target :as target])
+   [pallet.build-actions :as build-actions]
+   [pallet.action.directory :as directory]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.file :as file])
   (:use clojure.test
         pallet.test-utils))
 
 (deftest site-test
   []
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory "/etc/nginx/sites-available")
            (directory/directory "/etc/nginx/sites-enabled")
            (remote-file/remote-file
@@ -23,8 +21,8 @@
            (file/file
             "/etc/nginx/sites-available/mysite" :action :delete :force true)))
          (first
-          (build-resources
-           [:node-type {:tag :n :image {:os-family :ubuntu}}]
+          (build-actions/build-actions
+           {:server {:group-name :n :image {:os-family :ubuntu}}}
            (site "mysite"
                  :locations [{:location "/" :root "/some/path"}
                              {:location "/a"

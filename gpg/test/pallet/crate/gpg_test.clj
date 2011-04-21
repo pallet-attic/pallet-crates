@@ -1,14 +1,13 @@
 (ns pallet.crate.gpg-test
   (:use pallet.crate.gpg)
   (:require
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package])
+   [pallet.build-actions :as build-actions])
   (:use clojure.test
         pallet.test-utils))
 
 (deftest invoke-test
   (is
-   (build-resources
-    []
+   (build-actions/build-actions
+    {}
     (gpg)
     (import-key :content "not ans export" :user "fred"))))

@@ -1,7 +1,8 @@
 (ns pallet.crate.github-test
   (:use pallet.crate.github)
   (:require
-   [pallet.resource :as resource])
+   [pallet.build-actions :as build-actions]
+   [clojure.contrib.condition :as condition])
   (:use
    clojure.test
    pallet.test-utils))
@@ -10,20 +11,20 @@
   (let [akey "key12344"]
     (binding [pallet.crate.github/api (fn [& _] {:public_keys [{:key akey}]})]
       (is
-       (build-resources
-        []
+       (build-actions/build-actions
+        {}
         (deploy-key "project" "title" akey :username "u" :apikey "a")
         (deploy-key "project" "title" akey :username "u" :password "a")))
       (is
-       (build-resources
-        [:parameters {:github {:username "u" :password "p"}}]
+       (build-actions/build-actions
+        {:parameters {:github {:username "u" :password "p"}}}
         (deploy-key "project" "title" akey)))
       (is
-       (build-resources
-        [:parameters {:github {:username "u" :apikey "p"}}]
+       (build-actions/build-actions
+        {:parameters {:github {:username "u" :apikey "p"}}}
         (deploy-key "project" "title" akey)))
       (is (thrown?
            clojure.contrib.condition.Condition
-           (build-resources
-            []
+           (build-actions/build-actions
+            {}
             (deploy-key "project" "title" akey)))))))

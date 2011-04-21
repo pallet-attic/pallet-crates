@@ -3,11 +3,10 @@
   (:require
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
-   [pallet.resource :as resource]
-   [pallet.target :as target]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.package :as package]
-   [pallet.resource.user :as user]
+   [pallet.session :as session]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.package :as package]
+   [pallet.action.user :as user]
    [pallet.crate.iptables :as iptables]
    [clojure.string :as string])
   (:use pallet.thread-expr))
@@ -245,7 +244,7 @@
 
 
 (defn config
-  [request & {:keys [options sources destinations filters logs]
+  [session & {:keys [options sources destinations filters logs]
               :or {options default-options
                    sources default-sources
                    destinations default-destinations
@@ -253,7 +252,7 @@
                    logs default-logs}
               :as args}]
   (remote-file/remote-file
-   request
+   session
    "/etc/syslog-ng/syslog-ng.conf"
    :content (str
              (configure-block "options" options)
@@ -279,10 +278,10 @@
 
 (defn install
   "Install from package. keys correspond to sections of the syslog-ng.conf file"
-  [request & {:keys [options sources destinations filters logs]
+  [session & {:keys [options sources destinations filters logs]
               :as args}]
   (->
-   request
+   session
    (package/package "syslog-ng")
    (when-let-> [group (:group options)]
      (user/group group :system true))
@@ -297,15 +296,15 @@
 (defn set-server-ip
   "Set the syslog-ng server ip, so that it may be picked up by clients. This
    should probably be run in the pre-configure phase."
-  [request]
+  [session]
   (parameter/update-for
-   request
+   session
    [:syslog-ng :server :ip]
-   (fn [_] (compute/primary-ip (:target-node request)))))
+   (fn [_] (compute/primary-ip (session/target-node session)))))
 
 (defn iptables-accept
   "Accept connections, by default on port 514, with tcp."
-  ([request] (iptables-accept request 514 "tcp"))
-  ([request port] (iptables-accept request port "tcp"))
-  ([request port protocol]
-     (pallet.crate.iptables/iptables-accept-port request port protocol)))
+  ([session] (iptables-accept session 514 "tcp"))
+  ([session port] (iptables-accept session port "tcp"))
+  ([session port protocol]
+     (pallet.crate.iptables/iptables-accept-port session port protocol)))

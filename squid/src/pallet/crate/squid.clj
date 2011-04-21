@@ -10,12 +10,11 @@
    [pallet.crate.iptables :as iptables]
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.filesystem-layout :as filesystem-layout]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.service :as service]
+   [pallet.action :as action]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
@@ -23,20 +22,20 @@
 (defn- default-config-home
   "Default directory for configuration files."
   []
-  (stevedore/script (str (pkg-config-root) "/squid/")))
+  (stevedore/script (str (~lib/pkg-config-root) "/squid/")))
 
 (def ^{:doc "Flag for recognising changes to configuration"}
   squid-config-changed-flag "squid-config")
 
 (defn squid
   "Install squid from packages.
-   options as for pallet.resource.package/package."
-  [request & {:keys [action config-dir package-name service-name]
+   options as for pallet.action.package/package."
+  [session & {:keys [action config-dir package-name service-name]
               :or {package-name "squid"
                    config-dir (default-config-home)}
               :as options}]
   (->
-   request
+   session
    (package/package-manager :update)
    (thread-expr/apply-map-> package/package package-name options)
    (parameter/assoc-for-target
@@ -49,14 +48,14 @@
    Specify `:if-config-changed true` to make actions conditional on a change in
    configuration.
 
-   Other options are as for `pallet.resource.service/service`. The service
-   name is looked up in the request parameters."
-  [request & {:keys [action if-config-changed if-flag] :as options}]
-  (let [service (parameter/get-for-target request [:squid :service])
+   Other options are as for `pallet.action.service/service`. The service
+   name is looked up in the session parameters."
+  [session & {:keys [action if-config-changed if-flag] :as options}]
+  (let [service (parameter/get-for-target session [:squid :service])
         options (if if-config-changed
                   (assoc options :if-flag squid-config-changed-flag)
                   options)]
-    (-> request (thread-expr/apply-map-> service/service service options))))
+    (-> session (thread-expr/apply-map-> service/service service options))))
 
 
 (def default-config
@@ -105,10 +104,10 @@
   "Write the squid configuration file (squid.conf)
 
    Options are as for remote-file."
-  [request & {:as options}]
-  (let [config-dir (parameter/get-for-target request [:squid :config-dir])]
+  [session & {:as options}]
+  (let [config-dir (parameter/get-for-target session [:squid :config-dir])]
     (->
-     request
+     session
      (thread-expr/apply-map->
       remote-file/remote-file (str config-dir "squid.conf")
       :flag-on-changed squid-config-changed-flag
@@ -153,17 +152,17 @@
 (defn configure
   "Configure squid with the specified `config` map. See `default-config` for an
    example of the map entries."
-  [request config & {:keys [literal] :or {literal true}}]
+  [session config & {:keys [literal] :or {literal true}}]
   (->
-   request
+   session
    (squid-conf-file
     :content (squid-conf config)
     :literal literal)
    (parameter/assoc-for-target [:squid :port] (or (:http_port config) 3128))))
 
 (defn iptables-accept
-  "Accept proxy requests, by default on port 3128."
-  ([request] (iptables-accept
-              request (parameter/get-for-target request [:squid :port] 3128)))
-  ([request port]
-     (pallet.crate.iptables/iptables-accept-port request port)))
+  "Accept proxy sessions, by default on port 3128."
+  ([session] (iptables-accept
+              session (parameter/get-for-target session [:squid :port] 3128)))
+  ([session port]
+     (pallet.crate.iptables/iptables-accept-port session port)))

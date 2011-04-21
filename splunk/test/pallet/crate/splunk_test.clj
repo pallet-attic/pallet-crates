@@ -2,11 +2,11 @@
   (:use pallet.crate.splunk
         clojure.test)
   (:require
-   [pallet.resource :as resource]
+   [pallet.build-actions :as build-actions]
    [pallet.test-utils :as test-utils]))
 
 (deftest invoke-test
-  (is (test-utils/build-resources
-       [:target-node (test-utils/make-node "tag" :id "id")]
+  (is (build-actions/build-actions
+       {:server {:node (test-utils/make-node "tag" :id "id")}}
        (splunk)
        (configure))))

@@ -12,23 +12,25 @@
 
   Tested on ubuntu 10.04"
   (:require
-   [pallet.compute :as compute]
-   [pallet.resource :as resource]
-   [pallet.request-map :as request-map]
+   [pallet.action :as action]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.user :as user]
    [pallet.argument :as argument]
+   [pallet.compute :as compute]
    [pallet.parameter :as parameter]
-   [pallet.resource.package :as package]
-   [pallet.resource.user :as user]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.phase :as phase]
+   [pallet.session :as session]
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]))
 
 (defn nagios-hostname
   "Return the nagios hostname for a node"
   [node]
-  ;; this should match (request-map/safe-name request)
+  ;; this should match (session/safe-name session)
   ;; for things to work well
-  (format "%s%s" (compute/tag node) (request-map/safe-id (compute/id node))))
+  (format
+   "%s%s" (compute/group-name node) (session/safe-id (compute/id node))))
 
 (def hostgroup-fmt "
 define hostgroup {
@@ -126,32 +128,33 @@ define command {
      properties
      [:contactgroup_name :alias :members :contactgroup_members])))
 
+(def ^{:private true}
+  remote-file* (action/action-fn remote-file/remote-file-action))
 
-(resource/defcollect contact
+(action/def-collected-action contact
   "Define a contact for nagios"
-  (contact*
-   [request options]
-   (str
-    (remote-file/remote-file*
-     request
-     "/etc/nagios3/conf.d/pallet-contacts.cfg" :action :delete :force true)
-    (remote-file/remote-file*
-     request
-     "/etc/nagios3/conf.d/pallet-contacts.cfg"
-     :owner "root"
-     :content (string/join
-               \newline
-               (concat
-                (map (comp define-contact first) options)
-                (map (comp
-                      define-contactgroup
-                      #(hash-map :contactgroup_name %))
-                     (distinct
-                      (map
-                       name
-                       (apply
-                        concat
-                        (map (comp :contactgroups first) options)))))))))))
+  [session options]
+  (str
+   (remote-file*
+    session
+    "/etc/nagios3/conf.d/pallet-contacts.cfg" :action :delete :force true)
+   (remote-file*
+    session
+    "/etc/nagios3/conf.d/pallet-contacts.cfg"
+    :owner "root"
+    :content (string/join
+              \newline
+              (concat
+               (map (comp define-contact first) options)
+               (map (comp
+                     define-contactgroup
+                     #(hash-map :contactgroup_name %))
+                    (distinct
+                     (map
+                      name
+                      (apply
+                       concat
+                       (map (comp :contactgroups first) options))))))))))
 
 (defn hostgroup
   [name alias members]
@@ -212,66 +215,64 @@ define command {
         (assoc :host_name hostname))))
 
 (defn config-for-node
-  [request node]
-  (parameter/get-for request
+  [session node]
+  (parameter/get-for session
    [:nagios :host-services (keyword (nagios-hostname node))] nil))
 
 (defn config-for-unmanaged-node
-  [request unmanaged-node]
-  (parameter/get-for request
+  [session unmanaged-node]
+  (parameter/get-for session
    [:nagios :host-services (keyword (:name unmanaged-node))] nil))
 
 (defn unmanaged-host
   "Add an unmanaged host to a nagios server. Beware name conflicts between
    managed and unmanged servers are not detected."
-  [request ip name]
+  [session ip name]
   (parameter/update-for
-   request [:nagios :hosts]
+   session [:nagios :hosts]
    (fn [m]
      (distinct (conj (or m []) {:ip ip :name name})))))
 
-(resource/defresource hosts
+(action/def-bash-action hosts
   "Define nagios hosts"
-  (hosts*
-   [request]
-   ;(swank.core/break)
-   (str
-    (remote-file/remote-file*
-     request
-     "/etc/nagios3/conf.d/pallet-host-*.cfg" :action :delete :force true)
-    (string/join
-     \newline
-     (for [node (filter #(config-for-node request %) (:all-nodes request))
-           :let [hostname (nagios-hostname node)]]
-       (remote-file/remote-file*
-        request
-        (format "/etc/nagios3/conf.d/pallet-host-%s.cfg" hostname)
-        :owner "root"
-        :content (str
-                  (host
-                   (compute/primary-ip node) hostname)
-                  (string/join
-                   \newline
-                   (map
-                    (partial host-service hostname)
-                    (config-for-node request node)))))))
-    (string/join
-     \newline
-     (for [node (filter
-                 #(config-for-unmanaged-node request %)
-                 (parameter/get-for request [:nagios :hosts] nil))
-           :let [hostname (:name node)]]
-       (remote-file/remote-file*
-        request
-        (format "/etc/nagios3/conf.d/pallet-host-%s.cfg" hostname)
-        :owner "root"
-        :content (str
-                  (host (:ip node) hostname)
-                  (string/join
-                   \newline
-                   (map
-                    (partial host-service hostname)
-                    (config-for-unmanaged-node request node))))))))))
+  [session]
+  (str
+   (remote-file*
+    session
+    "/etc/nagios3/conf.d/pallet-host-*.cfg" :action :delete :force true)
+   (string/join
+    \newline
+    (for [node (filter #(config-for-node session %) (:all-nodes session))
+          :let [hostname (nagios-hostname node)]]
+      (remote-file*
+       session
+       (format "/etc/nagios3/conf.d/pallet-host-%s.cfg" hostname)
+       :owner "root"
+       :content (str
+                 (host
+                  (compute/primary-ip node) hostname)
+                 (string/join
+                  \newline
+                  (map
+                   (partial host-service hostname)
+                   (config-for-node session node)))))))
+   (string/join
+    \newline
+    (for [node (filter
+                #(config-for-unmanaged-node session %)
+                (parameter/get-for session [:nagios :hosts] nil))
+          :let [hostname (:name node)]]
+      (remote-file*
+       session
+       (format "/etc/nagios3/conf.d/pallet-host-%s.cfg" hostname)
+       :owner "root"
+       :content (str
+                 (host (:ip node) hostname)
+                 (string/join
+                  \newline
+                  (map
+                   (partial host-service hostname)
+                   (config-for-unmanaged-node session node)))))))))
 
 (defn servicegroup
   "Configure nagios servicegroup monitoring.
@@ -282,9 +283,9 @@ define command {
     :notes                note string
     :notes_url            url
     :action_url           url"
-  [request options]
+  [session options]
   (parameter/update-for
-   request [:nagios :servicegroups (keyword (:servicegroup_name options))]
+   session [:nagios :servicegroups (keyword (:servicegroup_name options))]
    (fn [x]
      (merge-with
       conj
@@ -292,45 +293,44 @@ define command {
       (select-keys options [:members :servicegroup_members])))))
 
 
-(resource/defresource servicegroups
-  (servicegroups*
-   [request]
-   (str
-    (remote-file/remote-file*
-     request
-     "/etc/nagios3/conf.d/pallet-servicegroups.cfg"
-     :owner "root"
-     :content
-     (string/join
-      \newline
-      (map
-       (comp
-        define-servicegroup
-        #(parameter/get-for
-          request
-          [:nagios :servicegroups %]
-          {:servicegroup_name (name %)}))
-       (distinct
-        (map
-         keyword
-         (filter
-          identity
+(action/def-bash-action servicegroups
+  [session]
+  (str
+   (remote-file*
+    session
+    "/etc/nagios3/conf.d/pallet-servicegroups.cfg"
+    :owner "root"
+    :content
+    (string/join
+     \newline
+     (map
+      (comp
+       define-servicegroup
+       #(parameter/get-for
+         session
+         [:nagios :servicegroups %]
+         {:servicegroup_name (name %)}))
+      (distinct
+       (map
+        keyword
+        (filter
+         identity
+         (apply
+          concat
           (apply
            concat
-           (apply
-            concat
-            (map
-             #(map :servicegroups %)
-             (concat
-              (map #(config-for-node request %) (:all-nodes request))
-              (map #(config-for-unmanaged-node request %)
-                   (parameter/get-for
-                    request [:nagios :hosts] nil)))))))))))))))
+           (map
+            #(map :servicegroups %)
+            (concat
+             (map #(config-for-node session %) (:all-nodes session))
+             (map #(config-for-unmanaged-node session %)
+                  (parameter/get-for
+                   session [:nagios :hosts] nil))))))))))))))
 
 (defn command*
-  [request [command-name command-line]]
-  (remote-file/remote-file*
-   request
+  [session [command-name command-line]]
+  (remote-file*
+   session
    (format "/etc/nagios3/conf.d/pallet-command-%s.cfg" (name command-name))
    :owner "root"
    :content (format command-fmt (name command-name) command-line)
@@ -338,48 +338,47 @@ define command {
 
 (defn command
   "Define nagios command"
-  [request command-name command-line]
+  [session command-name command-line]
   (remote-file/remote-file
-   request
+   session
    (format "/etc/nagios3/conf.d/pallet-command-%s.cfg" (name command-name))
    :owner "root"
    :content (format command-fmt (name command-name) command-line)
    :literal true))
 
-(resource/defresource commands
+(action/def-bash-action commands
   "Define nagios commands"
-  (commands*
-   [request]
-   (string/join
-    "\n"
-    (map
-     #(command* request %)
-     (parameter/get-for request [:nagios :commands] nil)))))
+  [session]
+  (string/join
+   "\n"
+   (map
+    #(command* session %)
+    (parameter/get-for session [:nagios :commands] nil))))
 
 (defn nrpe-command
   "Define an nrpe command"
-  [request]
+  [session]
   (command
-   request
+   session
    "check_nrpe"
    "$USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$"))
 
 (defn record-nagios-server
   "Record nagios server details"
-  [request]
+  [session]
   (parameter/update-for
-   request [:nagios :server :ip]
+   session [:nagios :server :ip]
    (fn [x]
-     (compute/primary-ip (:target-node request)))))
+     (compute/primary-ip (session/target-node session)))))
 
 (defn hostgroups
   "Create host groups for each tag, and one for all managed machines."
-  [request]
-  (let [nodes (filter #(config-for-node request %) (:all-nodes request))]
+  [session]
+  (let [nodes (filter #(config-for-node session %) (:all-nodes session))]
     (str
      (hostgroup "all-managed" "Managed Servers" (map nagios-hostname nodes))
      (when-let  [unmanaged (parameter/get-for
-                            request [:nagios :hosts] nil)]
+                            session [:nagios :hosts] nil)]
        (hostgroup
         "all-unmanaged" "Unmanaged Servers"
         (map :name unmanaged)))
@@ -396,9 +395,9 @@ define command {
 (defn nagios
   "Install nagios. Depends on a MTA and a webserver.  Note that you will
    need all target node groups in the lift/converge command."
-  [request admin-password]
+  [session admin-password]
   (->
-   request
+   session
    (package/package-manager
     :debconf
     (str "nagios3-cgi nagios3/adminpassword password " admin-password)
@@ -416,11 +415,11 @@ define command {
    (remote-file/remote-file
     "/etc/nagios3/conf.d/pallet-servicegroups.cfg" :action :delete :force true)
 
-   (resource/execute-pre-phase
+   (phase/schedule-in-pre-phase
     (record-nagios-server))
 
    ;; Generate hostgroups defintion for each tag
-   (resource/execute-after-phase
+   (phase/schedule-in-post-phase
     (commands)
 
     (remote-file/remote-file

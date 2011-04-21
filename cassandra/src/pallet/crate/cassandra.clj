@@ -1,15 +1,14 @@
 (ns pallet.crate.cassandra
   (:require
+   [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-directory :as remote-directory]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
    [pallet.argument :as argument]
-   [pallet.parameter :as pallet.parameter]
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package]
    [pallet.parameter :as parameter]
-   [pallet.resource.remote-directory :as remote-directory]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.file :as file]
-   [pallet.resource.service :as service]
    [pallet.stevedore :as stevedore]
    [clojure.string :as string]))
 
@@ -22,8 +21,8 @@
 (def cassandra-group "cassandra")
 
 (defn from-package
-  [request]
-  (-> request
+  [session]
+  (-> session
    (package/package-source
     "cassandra"
     :aptitude {:url "ppa:cassandra-ubuntu/stable"})
@@ -38,7 +37,7 @@
 
 (defn install
   "Install Cassandra"
-  [request & {:keys [version user group]
+  [session & {:keys [version user group]
               :or {version "0.6.3"}
               :as options}]
   (let [url (url version)
@@ -46,7 +45,7 @@
         group (or group cassandra-group)
         home (format "%s-%s" install-path version)]
     (->
-     request
+     session
      (parameter/parameters
       [:cassandra :home] home
       [:cassandra :owner] owner

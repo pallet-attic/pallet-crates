@@ -7,12 +7,13 @@
    target."
   (:require
    [pallet.parameter :as parameter]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.user :as user]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.package.epel :as epel]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.user :as user]
    [pallet.stevedore :as stevedore]
    [clojure.string :as string]))
 
@@ -39,15 +40,15 @@
      (file/symbolic-link
        \"/etc/mock/epel-5-$(uname -i).cfg\" \"/etc/mock/default.cfg\")
 "
-  [request & {:keys [base-dir build-dir build-user packager-name packager-email]
+  [session & {:keys [base-dir build-dir build-user packager-name packager-email]
               :or {build-user "build"
                    packager-name "Pallet package builder"
                    packager-email "none@nowhere.com"}}]
   (let [home (stevedore/script (user-home ~build-user))
         base-dir (or base-dir (str home "/rpmbuild"))]
     (->
-     request
-     (package/add-epel)
+     session
+     (epel/add-epel)
      (package/package-manager :update)
      (package/package "rpm-build")
      (package/package "redhat-rpm-config")
@@ -85,81 +86,81 @@
      :dist              a distribution string, e.g. el5
      :yum.conf          string specifying yu,.conf for the chroot environment
 "
-  [request name {:as config}]
+  [session name {:as config}]
   (string/join (map format-mock-config config)))
 
 (defn yum-mock-config-path
   "Path for a mock configuration file."
-  [request name]
+  [session name]
   (str "/etc/mock/" name ".cfg"))
 
 (defn yum-mock-config
   "Write a mock configuration file with the given name and configuration
   options."
-  [request name {:as config}]
+  [session name {:as config}]
   (remote-file/remote-file
-   request
-   (yum-mock-config-path request name)
-   :content (yum-mock-config-content request name config)))
+   session
+   (yum-mock-config-path session name)
+   :content (yum-mock-config-content session name config)))
 
 (defn source-path
   "Helper to return source path for a package."
-  [request]
+  [session]
   (str
-   (parameter/get-for-target request [:package-builder :base-dir]) "/SOURCES/"))
+   (parameter/get-for-target session [:package-builder :base-dir]) "/SOURCES/"))
 
 (defn srpm-path
   "Helper to return source path for a package."
-  [request]
+  [session]
   (str
-   (parameter/get-for-target request [:package-builder :base-dir]) "/SRPMS/"))
+   (parameter/get-for-target session [:package-builder :base-dir]) "/SRPMS/"))
 
 (defn spec-path
   "Helper to return rpm path for a package."
-  [request]
+  [session]
   (str
-   (parameter/get-for-target request [:package-builder :base-dir]) "/SPECS/"))
+   (parameter/get-for-target session [:package-builder :base-dir]) "/SPECS/"))
 
 (defn rpm-path
   "Helper to return rpm path for a package."
-  [request]
+  [session]
   (str
-   (parameter/get-for-target request [:package-builder :base-dir]) "/RPMS/"))
+   (parameter/get-for-target session [:package-builder :base-dir]) "/RPMS/"))
 
 (defn build-user
   "Helper to return the user for building packages."
-  [request]
-  (parameter/get-for-target request [:package-builder :build-user]))
+  [session]
+  (parameter/get-for-target session [:package-builder :build-user]))
 
 (defn mock-init
   "Initialise a mock environment for a target architecture."
-  [request & {:keys [target] :or {target "default"}}]
-  (let [user (parameter/get-for-target request [:package-builder :build-user])]
+  [session & {:keys [target] :or {target "default"}}]
+  (let [user (parameter/get-for-target session [:package-builder :build-user])]
     (exec-script/exec-checked-script    ; set up the mock chroot
-     request
+     session
      "init mock chroot"
      (sudo -u ~user "/usr/bin/mock" -r ~target init))))
 
 (defn rpm-build-source-package
   "Build a rpm source package."
-  [request path]
-  (let [user (parameter/get-for-target request [:package-builder :build-user])]
-    (exec-script/exec-checked-script request
+  [session path]
+  (let [user (parameter/get-for-target session [:package-builder :build-user])]
+    (exec-script/exec-checked-script session
      (format "rpmbuild source package %s" path)
      (cd @(dirname ~path))
      (rpmbuild -bs --nodeps @(basename ~path)))))
 
 (defn rpm-rebuild
   "Rebuild an rpm package based on a source package."
-  [request src-rpm & {:keys [target resultdir] :or {target "default"}}]
-  (let [user (parameter/get-for-target request [:package-builder :build-user])]
+  [session src-rpm & {:keys [target resultdir] :or {target "default"}}]
+  (let [user (parameter/get-for-target session [:package-builder :build-user])]
     (->
-     request
+     session
      (exec-script/exec-checked-script
       (format "rpm rebuild %s" src-rpm)
       (sudo -u ~user "/usr/bin/mock"
             -r ~target
-            --resultdir ~(or resultdir (rpm-path request))
+            --resultdir ~(or resultdir (rpm-path session))
             --rebuild ~src-rpm)))))
 
 ;; TODO - improve or remove this

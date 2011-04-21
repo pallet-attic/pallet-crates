@@ -2,15 +2,14 @@
   "Install postfix.
    To reconfigure: sudo dpkg-reconfigure postfix"
   (:use
-   [pallet.resource.package :as package]))
+   [pallet.action.package :as package]))
 
-(def mailer-types
-     {:internet-site "Internet Site"})
+(def mailer-types {:internet-site "Internet Site"})
 
 (defn postfix
-  [request mailname mailer-type]
+  [session mailname mailer-type]
   (->
-   request
+   session
    (package/package-manager
     :debconf
     (str "postfix postfix/mailname string " mailname)

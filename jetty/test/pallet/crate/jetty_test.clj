@@ -1,17 +1,17 @@
 (ns pallet.crate.jetty-test
   (:use
-   pallet.crate.jetty
    clojure.test
    pallet.test-utils)
   (:require
-   [pallet.resource :as resource]))
+   [pallet.build-actions :as build-actions]
+   [pallet.crate.jetty :as jetty]))
 
 (deftest invoke-test
-  (is (build-resources
-       []
-       (jetty)
-       (configure "")
-       (server "")
-       (ssl "")
-       (context "" "")
-       (deploy "" :content "c"))))
+  (is (build-actions/build-actions
+       {}
+       (jetty/jetty)
+       (jetty/configure "")
+       (jetty/server "")
+       (jetty/ssl "")
+       (jetty/context "" "")
+       (jetty/deploy "" :content "c"))))

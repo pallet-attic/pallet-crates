@@ -1,11 +1,10 @@
 (ns pallet.crate.cloudkick
   "Agent install for cloudkick"
   (:require
-   pallet.resource.remote-file)
-  (:require
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.hostinfo :as hostinfo]))
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]))
 
 (def cloudkick-conf-template "crate/cloudkick/cloudkick.conf")
 
@@ -15,9 +14,9 @@
      :tags seq        - tags for grouping nodes in cloudkick
      :resources       - proxy to port 80 on agent-resources.cloudkick.com
      :endpoint        - proxy to port 4166 on agent-endpoint.cloudkick.com"
-  [request nodename oauth-key oauth-secret
+  [session nodename oauth-key oauth-secret
    & {:keys [name tags resources endpoint] :as options}]
-  (-> request
+  (-> session
       (remote-file/remote-file
        "/etc/cloudkick.conf"
        :template cloudkick-conf-template
@@ -30,6 +29,6 @@
        :aptitude {:url "http://packages.cloudkick.com/ubuntu"
                   :key-url "http://packages.cloudkick.com/cloudkick.packages.key"}
        :yum { :url (str "http://packages.cloudkick.com/redhat/"
-                        (hostinfo/architecture))})
+                        (stevedore/script (~lib/arch)))})
       (package/package-manager :update)
       (package/package "cloudkick-agent")))

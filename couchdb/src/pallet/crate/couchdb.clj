@@ -1,17 +1,14 @@
 (ns pallet.crate.couchdb
-  (:use
-   [pallet.stevedore :only [script]]
-   pallet.thread-expr)
   (:require
-   [pallet.target :as target]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.service :as service]
    [pallet.argument :as argument]
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.stevedore :as script]
-   [pallet.resource.service :as service]
-   [pallet.resource.directory :as directory]
-   [clojure.contrib.json :as json]))
+   [pallet.session :as session]
+   [clojure.contrib.json :as json])
+  (:use
+   pallet.thread-expr))
 
 
 (def install-dirs
@@ -24,7 +21,7 @@
   "Installs couchdb, leaving all default configuration as-is.  Use of the
    `couchdb function is preferred, as it contains a workaround that makes
    it install cleanly in ubuntu."
-  [request]
+  [session]
   ;; this fixes this problem
   ;; https://bugs.launchpad.net/ubuntu/karmic/+source/couchdb/+bug/448682
   ;; apparently impacts centos, too.  The fix implemented here pulled from
@@ -33,9 +30,9 @@
   ;; stops and restarts.  The specified paths *should* cover the
   ;; common/reasonable locations....
   (->
-   request
+   session
    (directory/directories
-    (install-dirs (:target-packager request))
+    (install-dirs (session/packager session))
     :mode "0770" :owner "couchdb" :group "couchdb")
    (package/package "couchdb")
    ;; the package seems to start couch in some way that the init script
@@ -51,9 +48,9 @@
 
    Note that the configuration options mirror the couchdb ini file hierarchy
    documented here: http://wiki.apache.org/couchdb/Configurationfile_couch.ini"
-  [request {:as option-keyvals}]
+  [session {:as option-keyvals}]
   (->
-   request
+   session
    (for-> [[k v] option-keyvals
            :let [config-path (->> k (map #(name %)) (interpose "/"))
                  url (apply
@@ -72,13 +69,13 @@
 
    If any options are provided, then the couch server will be restarted after
    the configuraiton is modified."
-  [request & {:as option-keyvals}]
-  (let [request (install request)]
-    (-> request
+  [session & {:as option-keyvals}]
+  (let [session (install session)]
+    (-> session
         (package/package "curl")
         (service/service "couchdb" :action :restart)
         ;; the sleeps are here because couchdb doesn't actually start taking
-        ;; requests for a little bit -- it appears that the real process that's
+        ;; sessions for a little bit -- it appears that the real process that's
         ;; forked off is beam which ramps up couchdb *after* it's forked.
         (exec-script/exec-script (sleep 2))
         (configure option-keyvals)

@@ -4,25 +4,13 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crates</artifactId>
-    <version>0.4.5-SNAPSHOT</version>
+    <version>0.5.1-SNAPSHOT</version>
     <relativePath>..</relativePath>
   </parent>
   <artifactId>ssh-key</artifactId>
-  <version>0.4.4-SNAPSHOT</version>
+  <version>0.5.1-SNAPSHOT</version>
 
   <dependencies>
-    <dependency>
-      <groupId>org.cloudhoist</groupId>
-      <artifactId>pallet</artifactId>
-      <version>0.4.16</version>
-    </dependency>
-    <dependency>
-      <groupId>org.cloudhoist</groupId>
-      <artifactId>pallet</artifactId>
-      <version>0.4.16</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-crates-test</artifactId>
