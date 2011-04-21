@@ -1,10 +1,10 @@
 (ns pallet.crate.node-js
   "Install and configure node.js"
   (:require
-   [pallet.resource.package :as package]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.remote-directory :as remote-directory]))
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.remote-directory :as remote-directory]
+   [pallet.action.remote-file :as remote-file]))
 
 (def src-dir "/opt/local/node-js")
 
@@ -18,9 +18,9 @@
   (format "http://nodejs.org/dist/%s" (tarfile version)))
 
 (defn install
-  [request & {:keys [version] :or {version "0.2.1"}}]
+  [session & {:keys [version] :or {version "0.2.1"}}]
   (->
-   request
+   session
    (package/packages
     :yum ["gcc" "glib" "glibc-common" "python"]
     :aptitude ["build-essential" "python" "libssl-dev"])
@@ -35,12 +35,12 @@
 
 #_
 (pallet.core/defnode a {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.action/phase
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.action/phase
               (pallet.crate.node-js/install)
               (pallet.crate.upstart/package)
-              (pallet.resource.remote-file/remote-file
+              (pallet.action.remote-file/remote-file
                "/tmp/node.js"
                :content "
 var sys = require(\"sys\"),

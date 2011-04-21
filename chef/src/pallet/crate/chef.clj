@@ -1,34 +1,33 @@
 (ns pallet.crate.chef
  "Installation of chef"
-  (:use
-   [pallet.resource.package :only [package package-manager]]
-   [pallet.resource.directory :only [directory]]
-   [pallet.stevedore :only [script]]
-   [pallet.utils :only [*admin-user*]]
-   [pallet.crate.rubygems :only [gem gem-source rubygems]])
   (:require
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.parameter :as parameter]))
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.crate.rubygems :as rubygems]
+   [pallet.parameter :as parameter]
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils]))
 
 (defn chef
   "Install chef"
-  ([request] (chef request "/var/lib/chef"))
-  ([request cookbook-dir]
+  ([session] (chef session "/var/lib/chef"))
+  ([session cookbook-dir]
      (->
-      request
-      (package "rsync")
-      (rubygems)
-      (gem-source "http://rubygems.org/")
-      (gem "chef")
-      (directory cookbook-dir :owner (:username *admin-user*))
+      session
+      (package/package "rsync")
+      (rubygems/rubygems)
+      (rubygems/gem-source "http://rubygems.org/")
+      (rubygems/gem "chef")
+      (directory/directory cookbook-dir :owner (:username utils/*admin-user*))
       (parameter/assoc-for-target [:chef :cookbook-dir] cookbook-dir))))
 
 (defn solo
   "Run chef solo"
-  [request command]
-  (let [cookbook-dir (parameter/get-for-target request [:chef :cookbook-dir])]
+  [session command]
+  (let [cookbook-dir (parameter/get-for-target session [:chef :cookbook-dir])]
     (->
-     request
+     session
      (exec-script/exec-checked-script
       "Chef solo"
       (chef-solo

@@ -1,24 +1,24 @@
 (ns pallet.crate.rubygems
  "Installation of rubygems from source"
-  (:use
-   [pallet.resource.package :only [package package-manager]]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.remote-file :only [remote-file remote-file*]]
-   [pallet.resource.resource-when :only [resource-when resource-when-not]]
-   [pallet.resource :only [defresource]]
-   [pallet.crate.ruby :only [ruby ruby-packages ruby-version]]
-   [pallet.resource.user :only [user-home]]
-   [pallet.stevedore :as stevedore]
-   [pallet.script :only [defscript]]
-   [pallet.utils :only [*admin-user*]]
-   [clojure.contrib.json :as json])
   (:require
-   [pallet.resource.file]
-   [pallet.stevedore :as stevedore]))
+   [pallet.action :as action]
+   [pallet.action.conditional :as conditional]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.user :as user]
+   [pallet.crate.ruby :as ruby]
+   [pallet.script :as script]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils]
+   [clojure.contrib.json :as json]))
 
-(defscript gem [action package & options])
-(defimpl gem :default [action package & options]
-  ("gem" ~action ~(map-to-arg-string (first options)) ~package))
+(script/defscript gem-cmd [action package & [{:as options} & _]])
+(script/defimpl gem-cmd :default [action package & options]
+  ("gem" ~action ~(stevedore/map-to-arg-string (first options)) ~package))
 
 (def rubygems-downloads
      {"1.4.1" ["http://rubyforge.org/frs/download.php/73779/rubygems-1.4.1.tgz"
@@ -32,18 +32,19 @@
 
 (defn rubygems
   "Install rubygems from source"
-  ([request] (rubygems request "1.3.6"))
-  ([request version]
+  ([session] (rubygems session "1.3.6"))
+  ([session version]
      (let [info (rubygems-downloads version)
            basename (str "rubygems-" version)
            tarfile (str basename ".tgz")
-           tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
+           tarpath (str (stevedore/script (~lib/tmp-dir)) "/" tarfile)]
        (->
-        request
-        (ruby-packages)
-        (resource-when (< @(ruby-version) "1.8.6")
-                       (ruby))
-        (remote-file
+        session
+        (ruby/ruby-packages)
+        (conditional/when
+         (< @(~ruby/ruby-version) "1.8.6")
+         (ruby/ruby))
+        (remote-file/remote-file
          tarpath
          :url (first info)
          :md5 (second info))
@@ -52,71 +53,71 @@
            (do
              ~(stevedore/checked-script
                "Building rubygems"
-               (cd (tmp-dir))
-               (tar xfz ~tarfile)
-               (cd ~basename)
-               (ruby setup.rb)
+               ("cd" (tmp-dir))
+               ("tar" xfz ~tarfile)
+               ("cd" ~basename)
+               ("ruby" setup.rb)
                (if-not (|| (file-exists? "/usr/bin/gem1.8")
                            (file-exists? "/usr/local/bin/gem"))
                  (do (println "Could not find rubygem executable")
-                     (exit 1)))
+                     ("exit" 1)))
                ;; Create a symlink if we only have one ruby version installed
                (if-not (&& (file-exists? "/usr/bin/gem1.8")
                            (file-exists? "/usr/bin/gem1.9"))
                  (if (file-exists? "/usr/bin/gem1.8")
-                   (ln "-sfv" "/usr/bin/gem1.8" "/usr/bin/gem")))
+                   ("ln" "-sfv" "/usr/bin/gem1.8" "/usr/bin/gem")))
                (if-not (&& (file-exists? "/usr/local/bin/gem1.8")
                            (file-exists? "/usr/local/bin/gem1.9"))
                  (if (file-exists? "/usr/local/bin/gem1.8")
-                   (ln "-sfv" "/usr/locl/bin/gem1.8" "/usr/local/bin/gem")))))))))))
+                   ("ln" "-sfv" "/usr/locl/bin/gem1.8"
+                    "/usr/local/bin/gem")))))))))))
 
 (defn rubygems-update
-  [request]
+  [session]
   (exec-script/exec-script
-   request
+   session
    ("gem" "update" "--system")))
 
-(defresource gem "Gem management."
-  (gem*
-   [request name & {:keys [action version no-ri no-rdoc]
-                    :or {action :install}
-                    :as options}]
-   (case action
-     :install (stevedore/checked-script
-               (format "Install gem %s" name)
-               (gem
-                "install" ~name
-                ~(select-keys options [:version :no-ri :no-rdoc])))
-     :delete (stevedore/checked-script
-              (format "Uninstall gem %s" name)
-              (gem
-               "uninstall" ~name
-               ~(select-keys options [:version :no-ri :no-rdoc]))))))
+(action/def-bash-action gem "Gem management."
+  [session name & {:keys [action version no-ri no-rdoc]
+                   :or {action :install}
+                   :as options}]
+  (case action
+    :install (stevedore/checked-script
+              (format "Install gem %s" name)
+              (~gem-cmd
+               "install" ~name
+               ~(select-keys options [:version :no-ri :no-rdoc])))
+    :delete (stevedore/checked-script
+             (format "Uninstall gem %s" name)
+             (~gem-cmd
+              "uninstall" ~name
+              ~(select-keys options [:version :no-ri :no-rdoc])))))
 
 
-(defresource gem-source "Gem source management."
-  (gem-source*
-   [request source & {:keys [action] :or {action :create} :as options}]
-   (case action
-     :create (stevedore/script
-              (if-not ("gem" "sources" "--list" "|" "grep" ~source)
-                (gem "sources" ~source ~{:add true})))
-     :delete (stevedore/script (gem "sources" ~source ~{:remove true})))))
+(action/def-bash-action gem-source "Gem source management."
+  [session source & {:keys [action] :or {action :create} :as options}]
+  (case action
+    :create (stevedore/script
+             (if-not ("gem" "sources" "--list" "|" "grep" ~source)
+               (~gem-cmd "sources" ~source ~{:add true})))
+    :delete (stevedore/script (~gem-cmd "sources" ~source ~{:remove true}))))
 
-(defresource gemrc "rubygems configuration"
-  (gemrc*
-   [request m & user?]
-   (let [user (or (first user?) (*admin-user* :username))]
-     (remote-file*
-      request
-      (str (stevedore/script (user-home ~user)) "/.gemrc")
-      :content (.replaceAll (json/json-str m) "[{}]" "")
-      :owner user))))
+(def remote-file* (action/action-fn remote-file/remote-file-action))
+
+(action/def-bash-action gemrc "rubygems configuration"
+  [session m & user?]
+  (let [user (or (first user?) (utils/*admin-user* :username))]
+    (remote-file*
+     session
+     (str (stevedore/script (~lib/user-home ~user)) "/.gemrc")
+     :content (.replaceAll (json/json-str m) "[{}]" "")
+     :owner user)))
 
 (defn require-rubygems
   "Ensure that a version of rubygems is installed"
-   [request]
+   [session]
    (exec-script/exec-checked-script
-    request
+    session
     "Checking for rubygems"
     ("gem" "--version")))

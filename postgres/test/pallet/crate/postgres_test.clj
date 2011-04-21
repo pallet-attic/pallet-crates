@@ -1,6 +1,6 @@
 (ns pallet.crate.postgres-test
   (:require
-   [pallet.resource :as resource]
+   [pallet.build-actions :as build-actions]
    [pallet.test-utils :as test-utils])
   (:use
    pallet.crate.postgres
@@ -8,8 +8,8 @@
 
 (deftest postgres-test
   (is ; just check for compile errors for now
-   (test-utils/build-resources
-    []
+   (build-actions/build-actions
+    {}
     (postgres "8.0")
     (postgres "9.0")
     (hba-conf :records [])

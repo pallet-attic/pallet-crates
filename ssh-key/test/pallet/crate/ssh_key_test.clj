@@ -1,15 +1,17 @@
 (ns pallet.crate.ssh-key-test
   (:use pallet.crate.ssh-key)
   (:require
+   [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.user :as user]
+   [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.live-test :as live-test]
    [pallet.parameter :as parameter]
-   [pallet.resource :as resource]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.user :as user]
+   [pallet.phase :as phase]
    [pallet.stevedore :as stevedore]
    [pallet.template :as template]
    [pallet.utils :as utils]
@@ -23,8 +25,8 @@
 
 (deftest authorize-key-test
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
             :owner "fred" :mode "755")
@@ -38,14 +40,14 @@
             (if-not (fgrep (quoted "key1") @auth_file)
               (echo (quoted "key1") ">>" @auth_file)))))
          (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (authorize-key "fred" "key1"))))))
 
 (deftest install-key-test
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
             :owner "fred" :mode "755")
@@ -56,11 +58,11 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
             :content "public" :owner "fred" :mode "644")))
          (first
-          (build-resources
-           [] (install-key "fred" "id" "private" "public")))))
+          (build-actions/build-actions
+           {} (install-key "fred" "id" "private" "public")))))
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
             :owner "fred" :mode "755")
@@ -71,14 +73,14 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
             :content "public" :owner "fred" :mode "644")))
          (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (install-key "fred" "id" "private" "public"))))))
 
 (deftest generate-key-test
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh"
             :owner "fred" :mode "755")
@@ -97,13 +99,13 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa.pub"
             :owner "fred" :mode "0644")))
          (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (generate-key "fred")))))
 
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh"
             :owner "fred" :mode "755")
@@ -122,12 +124,12 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub"
             :owner "fred" :mode "0644")))
          (first
-          (build-resources
-           [] (generate-key "fred" :type "dsa")))))
+          (build-actions/build-actions
+           {} (generate-key "fred" :type "dsa")))))
 
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh"
             :owner "fred" :mode "755")
@@ -146,12 +148,12 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/identity.pub"
             :owner "fred" :mode "0644")))
          (first
-          (build-resources
-           [] (generate-key "fred" :type "rsa1")))))
+          (build-actions/build-actions
+           {} (generate-key "fred" :type "rsa1")))))
 
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (exec-script/exec-checked-script
             "ssh-keygen"
             (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/c")
@@ -165,16 +167,16 @@
            (file/file "$(getent passwd fred | cut -d: -f6)/.ssh/c.pub"
                       :owner "fred" :mode "0644")))
          (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (generate-key
             "fred" :type "rsa1" :file "c" :no-dir true
             :comment "my comment" :passphrase "abc"))))))
 
 (deftest authorize-key-for-localhost-test
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
             :owner "fred" :mode "755")
@@ -191,13 +193,13 @@
                 (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
                 (cat @key_file ">>" @auth_file))))))
          (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (authorize-key-for-localhost "fred" "id_dsa.pub")))))
 
   (is (= (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (directory/directory
             "$(getent passwd tom | cut -d: -f6)/.ssh/"
             :owner "tom" :mode "755")
@@ -214,14 +216,14 @@
                 (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
                 (cat @key_file ">>" @auth_file))))))
          (first
-          (build-resources
-           []
+          (build-actions/build-actions
+           {}
            (authorize-key-for-localhost
             "fred" "id_dsa.pub" :authorize-for-user "tom"))))))
 
 (deftest invoke-test
-  (is (build-resources
-       []
+  (is (build-actions/build-actions
+       {}
        (authorize-key "user" "pk")
        (authorize-key-for-localhost "user" "pk")
        (install-key "user" "name" "pk" "pubk")
@@ -246,13 +248,13 @@
        {:image image
         :count 1
         :phases
-        {:bootstrap (resource/phase
+        {:bootstrap (phase/phase-fn
                      (automated-admin-user)
                      (user/user "testuser"))
-         :configure (resource/phase (generate-key "testuser"))
-         :verify1 (resource/phase
+         :configure (phase/phase-fn (generate-key "testuser"))
+         :verify1 (phase/phase-fn
                    (record-public-key "testuser"))
-         :verify2 (resource/phase
+         :verify2 (phase/phase-fn
                    (check-public-key))}}}
       (core/lift (:ssh-key node-types)
                  :phase [:verify1 :verify2]

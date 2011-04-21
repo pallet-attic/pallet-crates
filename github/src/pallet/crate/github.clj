@@ -2,7 +2,7 @@
   "Crate for github api"
   (:require
    [pallet.parameter :as parameter]
-   [pallet.resource :as resource]
+   [pallet.action :as action]
    [clj-http.client :as client]
    [clojure.string :as string]
    [clojure.contrib.json :as json]
@@ -51,24 +51,23 @@
                      title project)))))))
 
 (defn- credentials
-  "Extract credentials from request or arguments, and normalise username
+  "Extract credentials from session or arguments, and normalise username
    to the required form, depending on whether apikey or password supplied."
-  [request options]
+  [session options]
   (let [{:keys [username password apikey]} (merge
                                             (parameter/get-for
-                                             request [:github] nil)
+                                             session [:github] nil)
                                             options)]
     (when-not (and username (or password apikey))
       (condition/raise
        :type :no-github-credentials
-       :message "No github credentials supplied in request or invocation."))
+       :message "No github credentials supplied in session or invocation."))
     (if apikey
       [(str username "/token") apikey]
       [username password])))
 
-(resource/deflocal deploy-key
+(action/def-bash-action deploy-key
   "Set a deploy key"
-  (deploy-key*
-   [request project title key & {:keys [username password apikey] :as options}]
-   (set-deploy-key project title key (credentials request options))
-   request))
+  [session project title key & {:keys [username password apikey] :as options}]
+  (set-deploy-key project title key (credentials session options))
+  session)

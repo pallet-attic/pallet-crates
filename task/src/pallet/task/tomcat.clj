@@ -2,12 +2,12 @@
   "Deploy to tomcat."
   (:require
    [pallet.core :as core]
-   [pallet.resource :as resource]
-   [pallet.resource.package :as package]
-   [pallet.resource.service :as service]
+   [pallet.action.package :as package]
+   [pallet.action.service :as service]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.java :as java]
    [pallet.crate.tomcat :as tomcat]
+   [pallet.phase :as phase]
    [clojure.contrib.logging :as logging]))
 
 (defn war-file-name
@@ -53,15 +53,15 @@
         command (and command (#{"deploy" "destroy" "restart"} (name command)))
         node-count (:count options 1)
         node (core/make-node
-              (:tag options "webapp")
+              (:group-name options "webapp")
               (:template options {:inbound-ports [8080 22]})
-              :bootstrap (resource/phase (bootstrap))
-              :configure (resource/phase
+              :bootstrap (phase/phase-fn (bootstrap))
+              :configure (phase/phase-fn
                           (tomcat-install)
                           (tomcat-deploy war))
-              :deploy (resource/phase
+              :deploy (phase/phase-fn
                        (tomcat-deploy war))
-              :restart (resource/phase
+              :restart (phase/phase-fn
                         (service/service "tomcat6" :action :restart)))]
     (if war
       (core/converge

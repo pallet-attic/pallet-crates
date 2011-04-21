@@ -1,23 +1,22 @@
 (ns pallet.crate.nginx
   "Crate for nginx management functions"
   (:require
+   [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
+   [pallet.action.user :as user]
+   [pallet.argument :as argument]
    [pallet.crate.rubygems :as rubygems]
    [pallet.parameter :as parameter]
-   [pallet.argument :as argument]
-   [pallet.resource :as resource]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.service :as service]
-   [pallet.resource.user :as user]
    [pallet.stevedore :as stevedore]
    [pallet.strint :as strint]
-   [pallet.target :as target]
    [pallet.template :as template]
    [pallet.utils :as utils]
-   [clojure.contrib.string :as string])
+   [clojure.string :as string])
   (:use pallet.thread-expr))
 
 (def src-packages
@@ -90,7 +89,7 @@
   "Install nginx from source. Options:
      :version version-string   -- specify the version (default \"0.7.65\")
      :configuration map        -- map of values for nginx.conf"
-  [request & options]
+  [session & options]
   (let [options (merge nginx-defaults (apply hash-map options))
         version (options :version)
         modules (options :version)
@@ -107,7 +106,7 @@
                                  "/ext/nginx")))))
                   options)]
 
-    (-> request
+    (-> session
         (for-> [p src-packages]
           (package/package p))
         (remote-file/remote-file
@@ -182,9 +181,9 @@
            [:nginx :group] nginx-group)))))
 
 (defn mime
-  [request]
+  [session]
   (->
-   request
+   session
    (remote-file/remote-file
     (format "%s/mime.types" nginx-conf-dir)
     :owner "root"
@@ -198,15 +197,13 @@
 
 (defn init
   "Creates a nginx init script."
-  [request & {:as options}]
+  [session & {:as options}]
   (->
-   request
+   session
    (service/init-script
     "nginx"
     :content (utils/load-resource-url
-              (template/find-template
-               nginx-init-script
-               (:node-type request)))
+              (template/find-template nginx-init-script session))
     :literal true)
    (if-not-> (:no-enable options)
      (service/service "nginx" :action :enable))))
@@ -217,20 +214,20 @@
 :server_name   -- name
 :locations     -- locations (a seq of maps, with keys :location, :root
                   :index, :proxy_pass :passenger-enabled :rails-env)"
-  [request name & {:keys [locations action] :or {action :enable} :as options}]
+  [session name & {:keys [locations action] :or {action :enable} :as options}]
   (let [available (format "%s/sites-available/%s" nginx-conf-dir name)
         enabled (format "%s/sites-enabled/%s" nginx-conf-dir name)
-        site (fn [request filename]
+        site (fn [session filename]
                (let [locations (string/join
                                 \newline
                                 (map
                                  #(template/interpolate-template
                                    nginx-location
                                    (merge nginx-default-location %)
-                                   (:node-type request))
+                                   session)
                                  locations))]
                  (remote-file/remote-file
-                  request
+                  session
                   filename
                   :template nginx-site
                   :values (utils/map-with-keys-as-symbols
@@ -239,7 +236,7 @@
                              [nginx-default-site
                               (dissoc options :locations)])))))]
     (->
-     request
+     session
      (directory/directory (format "%s/sites-available" nginx-conf-dir))
      (directory/directory (format "%s/sites-enabled" nginx-conf-dir))
      (when-> (= action :enable)

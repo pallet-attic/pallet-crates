@@ -7,14 +7,14 @@
    the rpm.bin file on the node using the :rpm-bin option. The rpm will be
    installed."
   (:require
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.package.jpackage :as jpackage]
+   [pallet.action.remote-file :as remote-file]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
-   [pallet.target :as target])
+   [pallet.session :as session]
+   [pallet.stevedore :as stevedore])
   (:use pallet.thread-expr))
 
 (def vendor-keywords #{:openjdk :sun})
@@ -52,11 +52,11 @@
 
 (defn- use-jpackage
   "Determine if jpackage should be used"
-  [request]
-  (let [os-family (request-map/os-family request)]
+  [session]
+  (let [os-family (session/os-family session)]
     (and
      (= :centos os-family)
-     (re-matches #"5\.[0-5]" (request-map/os-version request)))))
+     (re-matches #"5\.[0-5]" (session/os-version session)))))
 
 (defn java
   "Install java. Options can be :sun, :openjdk, :jdk, :jre.
@@ -64,18 +64,18 @@
 
    On CentOS, when specifying :sun, you can also pass the path of the
    Oracle rpm.bin file to the :rpm-bin option, and the rpm will be installed."
-  [request & options]
+  [session & options]
   (let [vendors (or (seq (filter vendor-keywords options))
                     [:sun])
         components (or (seq (filter #{:jdk :jre} options))
                        [:jdk])
-        packager (:target-packager request)
-        os-family (request-map/os-family request)
-        use-jpackage (use-jpackage request)]
-    (let [vc (fn [request vendor component]
+        packager (session/packager session)
+        os-family (session/os-family session)
+        use-jpackage (use-jpackage session)]
+    (let [vc (fn [session vendor component]
                (let [pkgs (java-package-name packager vendor component)]
                  (->
-                  request
+                  session
                   (for->
                    [p pkgs]
                    (when-> (and (= packager :aptitude) (= vendor :sun))
@@ -87,7 +87,7 @@
                              p " shared/accepted-sun-dlj-v1-1 boolean true")))
                    (package/package p)))))]
       (->
-       request
+       session
        (when-> (some #(= :sun %) vendors)
                (when-> (= packager :aptitude)
                        (when-> (= os-family :ubuntu)
@@ -102,44 +102,47 @@
                                (package/package-manager
                                 :add-scope :scope :non-free)
                                (package/package-manager :update)))
-               (when-> use-jpackage
-                (package/add-jpackage)
-                (package/package-manager-update-jpackage)
-                (package/jpackage-utils)
-                (when-let->
-                 [rpm-bin (:rpm-bin
-                           (apply hash-map (remove all-keywords options)))]
-                 (exec-script/exec-checked-script
-                  "Unpack java rpm"
-                  (heredoc "java-bin-resp" "A\n\n")
-                  (chmod "+x" ~rpm-bin)
-                  (~rpm-bin < "java-bin-resp"))
-                 (package/package
-                  "java-1.6.0-sun-compat"
-                  :enable ["jpackage-generic" "jpackage-generic-updates"]))))
+               (when->
+                use-jpackage
+                (jpackage/add-jpackage)
+                (jpackage/package-manager-update-jpackage)
+                (jpackage/jpackage-utils))
+               (when-let->
+                [rpm-bin (:rpm-bin
+                          (apply hash-map (remove all-keywords options)))]
+                (exec-script/exec-checked-script
+                 "Unpack java rpm"
+                 (heredoc "java-bin-resp" "A\n\n")
+                 (chmod "+x" ~rpm-bin)
+                 (~rpm-bin < "java-bin-resp")))
+               (when->
+                use-jpackage
+                (package/package
+                 "java-1.6.0-sun-compat"
+                 :enable ["jpackage-generic" "jpackage-generic-updates"])))
        (package/package-manager :update)
        (for-> [vendor vendors]
               (for-> [component components]
                      (vc vendor component)))))))
 
 (script/defscript java-home [])
-(stevedore/defimpl java-home :default []
+(script/defimpl java-home :default []
   @("dirname" @("dirname" @("readlink" -f @("which" java)))))
-(stevedore/defimpl java-home [#{:aptitude}] []
+(script/defimpl java-home [#{:aptitude}] []
   @("dirname" @("dirname" @("update-alternatives" --list java))))
-(stevedore/defimpl java-home [#{:darwin :os-x}] []
+(script/defimpl java-home [#{:darwin :os-x}] []
    @JAVA_HOME)
 
 (script/defscript jdk-home [])
-(stevedore/defimpl jdk-home :default []
+(script/defimpl jdk-home :default []
   @("dirname" @("dirname" @("readlink" -f @("which" javac)))))
-(stevedore/defimpl jdk-home [#{:aptitude}] []
+(script/defimpl jdk-home [#{:aptitude}] []
   @("dirname" @("dirname" @("update-alternatives" --list javac))))
-(stevedore/defimpl jdk-home [#{:darwin :os-x}] []
+(script/defimpl jdk-home [#{:darwin :os-x}] []
    @JAVA_HOME)
 
 (script/defscript jre-lib-security [])
-(stevedore/defimpl jre-lib-security :default []
+(script/defimpl jre-lib-security :default []
   (str @(update-java-alternatives -l "|" cut "-d ' '" -f 3 "|" head -1)
        "/jre/lib/security/"))
 
@@ -153,8 +156,8 @@
 
    Note this only intended to work for ubuntu/aptitude-managed systems and Sun
    JDKs right now."
-  [request filename & {:as options}]
-  (apply remote-file/remote-file request
+  [session filename & {:as options}]
+  (apply remote-file/remote-file session
     (stevedore/script (str (jre-lib-security) ~filename))
     (apply
      concat (merge {:owner "root" :group "root" :mode 644} options))))

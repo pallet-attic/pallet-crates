@@ -1,13 +1,13 @@
 (ns pallet.crate.php
   (:require
-   [pallet.resource.package :as package])
+   [pallet.action.package :as package])
   (:use pallet.thread-expr))
 
 (defn php
   "Install php"
-  [request & extensions]
+  [session & extensions]
   (->
-   request
+   session
    (package/packages :yum ["php5"] :aptitude ["php5"])
    (for-> [extension extensions]
      (package/package (format "php-%s" (name extension))))))

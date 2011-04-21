@@ -1,16 +1,14 @@
 (ns pallet.crate.iozone
   "Crate for iozone disk benchmark"
   (:require
-   [pallet.target :as target]
-   [pallet.resource :as resource]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
    [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
    [pallet.template :as template]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.file :as file]
-   [pallet.resource.directory :as directory])
+   [pallet.utils :as utils])
   (:use
    pallet.thread-expr))
 
@@ -30,12 +28,12 @@
 (defn iozone
   "Install iozone from source. Options:
      :version version-string   -- specify the version (default \"3_347\")"
-  [request & {:keys [version] :or {version "3_347"} :as options}]
+  [session & {:keys [version] :or {version "3_347"} :as options}]
   (let [basename (str "iozone-" version)
         tarfile (str basename ".tar")
         tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
     (->
-     request
+     session
      (for-> [p src-packages]
        (package/package p))
      (remote-file/remote-file
