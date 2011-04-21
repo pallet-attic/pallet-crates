@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crates</artifactId>
-    <version>0.4.4-SNAPSHOT</version>
+    <version>0.4.5-SNAPSHOT</version>
     <relativePath>..</relativePath>
   </parent>
   <artifactId>pallet-crates-standalone</artifactId>
@@ -120,7 +120,7 @@
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
               <artifactId>maven</artifactId>
-              <version>0.4.2-SNAPSHOT</version>
+              <version>0.4.3-SNAPSHOT</version>
             </artifactItem>
             <artifactItem>
               <groupId>org.cloudhoist</groupId>
