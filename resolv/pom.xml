@@ -4,9 +4,9 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crates</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1-SNAPSHOT</version>
     <relativePath>..</relativePath>
   </parent>
   <artifactId>resolv</artifactId>
-  <version>0.5.0</version>
+  <version>0.5.1-SNAPSHOT</version>
 </project>
