@@ -4,9 +4,9 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crates</artifactId>
-    <version>0.4.4-SNAPSHOT</version>
+    <version>0.4.4</version>
     <relativePath>..</relativePath>
   </parent>
   <artifactId>iozone</artifactId>
-  <version>0.4.3-SNAPSHOT</version>
+  <version>0.4.3</version>
 </project>

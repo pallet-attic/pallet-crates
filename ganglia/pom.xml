@@ -4,17 +4,17 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-crates</artifactId>
-    <version>0.4.4-SNAPSHOT</version>
+    <version>0.4.4</version>
     <relativePath>..</relativePath>
   </parent>
   <artifactId>ganglia</artifactId>
-  <version>0.4.3-SNAPSHOT</version>
+  <version>0.4.3</version>
 
   <dependencies>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>nagios-config</artifactId>
-      <version>0.4.3-SNAPSHOT</version>
+      <version>0.4.3</version>
     </dependency>
   </dependencies>
 </project>
