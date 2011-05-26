@@ -4,6 +4,7 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.package :as package]
+   [pallet.action.package.jpackage :as jpackage]
    [pallet.action.remote-file :as remote-file]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
@@ -14,7 +15,8 @@
    [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]
-   [pallet.utils :as utils])
+   [pallet.utils :as utils]
+   [clojure.contrib.logging :as logging])
   (:use clojure.test
         pallet.test-utils))
 
@@ -103,11 +105,11 @@
     (java :openjdk :jdk)
     (jce-policy-file "f" :content ""))))
 
-(def centos [{:os-family :centos}])
+(def rh [{:os-family :centos} {:os-family :fedora} {:os-family :rhel}])
 
 (deftest live-test
   (live-test/test-for
-   [image (live-test/exclude-images live-test/*images* centos)]
+   [image (live-test/exclude-images live-test/*images* rh)]
     (live-test/test-nodes
      [compute node-map node-types]
      {:java
@@ -124,45 +126,44 @@
                           ("java" -version))
                  (exec-script/exec-checked-script
                   "check java installed under java home"
-                  ("test" (file-exists? (str (java-home) "/bin/java"))))
+                  ("test" (file-exists? (str (~java-home) "/bin/java"))))
                  (exec-script/exec-checked-script
                   "check javac installed under jdk home"
-                  ("test" (file-exists? (str (jdk-home) "/bin/javac")))))}}}
+                  ("test" (file-exists? (str (~jdk-home) "/bin/javac")))))}}}
      (core/lift (val (first node-types)) :phase :verify :compute compute))))
 
 ;; To run this test you will need to download the Oracle Java rpm downloads in
 ;; the artifacts directory.
 (deftest centos-live-test
   (live-test/test-for
-   [image (live-test/filter-images live-test/*images* centos)]
-    (live-test/test-nodes
-     [compute node-map node-types]
-     {:java
-      {:image image
-       :count 1
-       :phases
-       {:bootstrap (phase/phase-fn
-                    (package/minimal-packages)
-                    (package/package-manager :update)
-                    (automated-admin-user/automated-admin-user))
-        :configure (phase/phase-fn
-                    (thread-expr/arg->
-                     [session]
-                     (remote-file/remote-file
-                      "jdk.bin"
-                      :local-file (if (session/is-64bit? session)
-                                    "artifacts/jdk-6u23-linux-x64-rpm.bin"
-                                    "artifacts/jdk-6u24-linux-i586-rpm.bin")
-                      :mode "755"))
-                    (java :sun :rpm-bin "./jdk.bin"))
-        :verify (phase/phase-fn
-                 (exec-script/exec-checked-script
-                  "check java installed"
-                  ("java" -version))
-                 (exec-script/exec-checked-script
-                  "check java installed under java home"
-                  ("test" (file-exists? (str (java-home) "/bin/java"))))
-                 (exec-script/exec-checked-script
-                  "check javac installed under jdk home"
-                  ("test" (file-exists? (str (jdk-home) "/bin/javac")))))}}}
-     (core/lift (val (first node-types)) :phase :verify :compute compute))))
+   [image (live-test/filter-images (live-test/images) rh)]
+   (logging/info (format "testing %s" (pr-str image)))
+   (live-test/test-nodes
+    [compute node-map node-types]
+    {:java
+     {:image image
+      :count 1
+      :phases
+      {:bootstrap (phase/phase-fn
+                   (package/minimal-packages)
+                   (package/package-manager :update)
+                   (automated-admin-user/automated-admin-user))
+       :configure (fn [session]
+                    (let [file (if (session/is-64bit? session)
+                                    "jdk-6u23-linux-x64-rpm.bin"
+                                    "jdk-6u24-linux-i586-rpm.bin")]
+                      (->
+                       session
+                       (rpm-bin-file file :local-file (str "artifacts/" file))
+                       (java :sun :rpm-bin (str "./" file)))))
+       :verify (phase/phase-fn
+                (exec-script/exec-checked-script
+                 "check java installed"
+                 ("java" -version))
+                (exec-script/exec-checked-script
+                 "check java installed under java home"
+                 ("test" (file-exists? (str (~java-home) "/bin/java"))))
+                (exec-script/exec-checked-script
+                 "check javac installed under jdk home"
+                 ("test" (file-exists? (str (~jdk-home) "/bin/javac")))))}}}
+    (core/lift (val (first node-types)) :phase :verify :compute compute))))
