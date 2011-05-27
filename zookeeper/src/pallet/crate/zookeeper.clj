@@ -31,11 +31,10 @@
    :syncLimit 5
    :dataLogDir tx-log-path})
 
-
 (defn url "Download url"
   [version]
   (format
-   "http://www.apache.org/dist/hadoop/zookeeper/zookeeper-%s/zookeeper-%s.tar.gz"
+   "http://www.apache.org/dist/zookeeper/zookeeper-%s/zookeeper-%s.tar.gz"
    version version))
 
 (defn install
@@ -43,7 +42,7 @@
   [session & {:keys [user group version home]
               :or {user zookeeper-user
                    group zookeeper-group
-                   version "3.3.1"}
+                   version "3.3.3"}
               :as options}]
   (let [url (url version)
         home (or home (format "%s-%s" install-path version))]
