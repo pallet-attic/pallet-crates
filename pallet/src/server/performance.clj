@@ -2,10 +2,10 @@
   (:require
    [pallet.core :as core]
    [pallet.stevedore :as stevedore]
-   [pallet.resource :as resource]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.package :as package]
+   [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
    [pallet.crate.iozone :as iozone]
    [pallet.crate.automated-admin-user :as automated-admin-user]))
 
@@ -22,10 +22,10 @@
 
 (core/defnode small
   {}
-  :bootstrap (resource/phase
+  :bootstrap (phase/phase-fn
               (package/package-manager :update)
               (automated-admin-user/automated-admin-user))
-  :configure (resource/phase
+  :configure (phase/phase-fn
               (iozone/iozone))
-  :diskperf  (resource/phase
+  :diskperf  (phase/phase-fn
               (iozone-test)))

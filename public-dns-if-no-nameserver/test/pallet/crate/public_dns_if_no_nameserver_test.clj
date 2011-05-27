@@ -3,9 +3,9 @@
         pallet.test-utils
         clojure.test)
   (:require
-   [pallet.resource :as resource]))
+   [pallet.build-actions :as build-actions]))
 
 (deftest invoke-test
-  (is (build-resources
-       []
+  (is (build-actions/build-actions
+       {}
        (public-dns-if-no-nameserver))))

@@ -3,17 +3,17 @@
    clojure.test
    pallet.test-utils)
   (:require
+   [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
    [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.crate.network-service :as network-service]
    [pallet.crate.squid :as squid]
    [pallet.live-test :as live-test]
    [pallet.parameter :as parameter]
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.network-service :as network-service]
-   [pallet.resource.package :as package]))
+   [pallet.phase :as phase]))
 
 
 (def default-config
@@ -32,18 +32,18 @@
      {:squid
       {:image image
        :count 1
-       :phases {:bootstrap (resource/phase
+       :phases {:bootstrap (phase/phase-fn
                             (package/minimal-packages)
                             (package/package-manager :update)
                             (automated-admin-user/automated-admin-user))
-                :configure (resource/phase
+                :configure (phase/phase-fn
                             (squid/squid)
                             (squid/squid-conf-file
                              :content (squid/squid-conf squid/default-config)
                              :literal true)
                             (squid/init-service
                              :action :restart :if-config-changed true))
-                :verify (resource/phase
+                :verify (phase/phase-fn
                          (network-service/wait-for-port-listen
                           3128 :max-retries 1)
                          (exec-script/exec-checked-script

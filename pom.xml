@@ -4,114 +4,445 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.0-beta-1</version>
-    <relativePath>../pallet-pom</relativePath>
+    <version>0.4.3</version>
+    <relativePath />
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet-crates</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
+  <version>0.5.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>pallet crates</name>
   <description>Pallet Crates</description>
+  <url>http://palletops.com</url>
 
   <scm>
     <connection>scm:git:git://github.com/pallet/pallet-crates.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/pallet/pallet-crates.git</developerConnection>
-    <url>http://github.com/pallet/pallet-crates</url>
+    <url>https://github.com/pallet/pallet-crates</url>
   </scm>
 
-  <!-- to build marginalia output,
-         mvn clojure:marginalia -P marginalia,\!default -->
+  <modules>
+    <!-- The complete module depends on all other modules. -->
+    <module>pallet-crates-all</module>
+
+    <!-- The standalone module packages all other modules. -->
+    <module>pallet-crates-standalone</module>
+
+    <module>pallet-crates-test</module>
+
+    <module>automated-admin-user</module>
+    <module>bzr</module>
+    <module>cassandra</module>
+    <module>chef</module>
+    <module>cloudkick</module>
+    <module>couchdb</module>
+    <module>crontab</module>
+    <module>cruise-control-rb</module>
+    <module>etc-default</module>
+    <module>etc-hosts</module>
+    <module>ganglia</module>
+    <module>git</module>
+    <module>github</module>
+    <module>gpg</module>
+    <module>haproxy</module>
+    <module>hudson</module>
+    <module>iozone</module>
+    <module>iptables</module>
+    <module>java</module>
+    <module>jetty</module>
+    <module>maven</module>
+    <module>monit</module>
+    <module>mysql</module>
+    <module>nagios</module>
+    <module>nagios-config</module>
+    <module>nginx</module>
+    <module>node-js</module>
+    <module>package-builder</module>
+    <module>php</module>
+    <module>postfix</module>
+    <module>postgres</module>
+    <module>public-dns-if-no-nameserver</module>
+    <module>rabbitmq</module>
+    <module>resolv</module>
+    <module>ruby</module>
+    <module>rubygems</module>
+    <module>sphinx</module>
+    <module>splunk</module>
+    <module>squeak</module>
+    <module>ssh</module>
+    <module>ssh-key</module>
+    <module>squid</module>
+    <module>sudoers</module>
+    <module>syslog-ng</module>
+    <module>tomcat</module>
+    <module>upstart</module>
+    <module>vpnc</module>
+    <module>wordpress</module>
+    <module>zeromq</module>
+    <module>zookeeper</module>
+  </modules>
+
   <profiles>
     <profile>
-      <id>default</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <modules>
-        <!-- The parent module defines common configuration for all modules. -->
-        <module>pallet-crate-pom</module>
-
-        <!-- The complete module depends on all other modules. -->
-        <module>pallet-crates-all</module>
-
-        <!-- The standalone module packages all other modules. -->
-        <module>pallet-crates-standalone</module>
-
-        <module>automated-admin-user</module>
-        <module>bzr</module>
-        <module>cassandra</module>
-        <module>chef</module>
-        <module>cloudkick</module>
-        <module>couchdb</module>
-        <module>crontab</module>
-        <module>cruise-control-rb</module>
-        <module>etc-default</module>
-        <module>etc-hosts</module>
-        <module>ganglia</module>
-        <module>git</module>
-        <module>github</module>
-        <module>gpg</module>
-        <module>haproxy</module>
-        <module>hudson</module>
-        <module>iozone</module>
-        <module>iptables</module>
-        <module>java</module>
-        <module>jetty</module>
-        <module>maven</module>
-        <module>monit</module>
-        <module>mysql</module>
-        <module>nagios</module>
-        <module>nagios-config</module>
-        <module>nginx</module>
-        <module>node-js</module>
-        <module>package-builder</module>
-        <module>php</module>
-        <module>postfix</module>
-        <module>postgres</module>
-        <module>public-dns-if-no-nameserver</module>
-        <module>rabbitmq</module>
-        <module>resolv</module>
-        <module>ruby</module>
-        <module>rubygems</module>
-        <module>sphinx</module>
-        <module>splunk</module>
-        <module>squeak</module>
-        <module>ssh</module>
-        <module>ssh-key</module>
-        <module>squid</module>
-        <module>sudoers</module>
-        <module>syslog-ng</module>
-        <module>tomcat</module>
-        <module>upstart</module>
-        <module>vpnc</module>
-        <module>wordpress</module>
-        <module>zeromq</module>
-        <module>zookeeper</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>marginalia</id>
-      <activation>
-        <property>
-          <name>project.goal</name>
-          <value>clojure:marginalia</value>
-        </property>
-      </activation>
-      <modules />
+      <id>live-test</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.theoryinpractise</groupId>
+            <artifactId>clojure-maven-plugin</artifactId>
+            <configuration>
+              <clojureOptions>-Dpallet.test.live=true -Dpallet.test.service-name=${pallet.test.service-name} -Dpallet.test.cleanup-nodes=${pallet.test.cleanup-nodes} -Dpallet.test.image-list=${pallet.test.image-list} -Dpallet.test.parallel=${pallet.test.parallel}</clojureOptions>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <properties>
+        <pallet.test.service-name>live-test</pallet.test.service-name>
+        <pallet.test.cleanup-nodes>true</pallet.test.cleanup-nodes>
+        <pallet.test.parallel>false</pallet.test.parallel>
+        <pallet.test.image-list />
+      </properties>
     </profile>
   </profiles>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet</artifactId>
+      <version>${pallet.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet</artifactId>
+      <version>${pallet.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>swank-clojure</groupId>
+      <artifactId>swank-clojure</artifactId>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>vmfest</groupId>
+      <artifactId>vmfest</artifactId>
+      <version>0.2.2</version>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jclouds</groupId>
+      <artifactId>jclouds-all</artifactId>
+      <version>${jclouds.version}</version>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>pallet-crates-test</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>automated-admin-user</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>bzr</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>cassandra</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>chef</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>cloudkick</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>couchdb</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>crontab</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>cruise-control-rb</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>etc-default</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>etc-hosts</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ganglia</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>git</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>github</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>gpg</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>haproxy</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>hudson</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>iozone</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>iptables</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>java</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>jetty</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>maven</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>monit</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>mysql</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>nagios</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>nagios-config</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>nginx</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>node-js</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>package-builder</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>php</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>postfix</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>postgres</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>public-dns-if-no-nameserver</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>rabbitmq</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>resolv</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ruby</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>rubygems</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ruby</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>sphinx</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>splunk</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>squeak</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ssh</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>ssh-key</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>squid</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>sudoers</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>syslog-ng</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>tomcat</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>upstart</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>vpnc</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>wordpress</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>zeromq</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>zookeeper</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <build>
+    <pluginManagement>
+      <plugins>
+        <!-- <plugin> -->
+        <!--   <artifactId>maven-jar-plugin</artifactId> -->
+        <!--   <executions> -->
+        <!--     <execution> -->
+        <!--       <id>test-jar</id> -->
+        <!--       <goals> -->
+        <!--         <goal>test-jar</goal> -->
+        <!--       </goals> -->
+        <!--     </execution> -->
+        <!--   </executions> -->
+        <!-- </plugin> -->
+        <plugin>
+          <groupId>com.theoryinpractise</groupId>
+          <artifactId>clojure-maven-plugin</artifactId>
+          <configuration>
+            <clojureOptions>-Xmx1024m -Djava.awt.headless=true -XX:MaxPermSize=256m</clojureOptions>
+          </configuration>
+          <executions>
+            <execution>
+              <id>compile-clojure</id>
+              <configuration>
+                <skip>true</skip>
+              </configuration>
+            </execution>
+            <execution>
+              <id>test-clojure</id>
+              <configuration>
+                <skip>true</skip>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.1</version>
-	<configuration>
-	  <autoVersionSubmodules>true</autoVersionSubmodules>
-	</configuration>
-      </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <version>2.2-beta-5</version>
@@ -122,71 +453,38 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>com.theoryinpractise</groupId>
-        <artifactId>clojure-maven-plugin</artifactId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>2.0.1</version>
+        <executions>
+          <execution>
+            <id>site</id>
+            <phase>site</phase>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.0</version>
         <configuration>
-            <marginaliaSourceDirectories>
-              <param>automated-admin-user/src</param>
-              <param>bzr/src</param>
-              <param>cassandra/src</param>
-              <param>chef/src</param>
-              <param>cloudkick/src</param>
-              <param>couchdb/src</param>
-              <param>crontab/src</param>
-              <param>cruise-control-rb/src</param>
-              <param>etc-default/src</param>
-              <param>etc-hosts/src</param>
-              <param>ganglia/src</param>
-              <param>git/src</param>
-              <param>github/src</param>
-              <param>gpg/src</param>
-              <param>haproxy/src</param>
-              <param>hudson/src</param>
-              <param>iozone/src</param>
-              <param>iptables/src</param>
-              <param>java/src</param>
-              <param>jetty/src</param>
-              <param>maven/src</param>
-              <param>monit/src</param>
-              <param>mysql/src</param>
-              <param>nagios/src</param>
-              <param>nagios-config/src</param>
-              <param>nginx/src</param>
-              <param>node-js/src</param>
-              <param>package-builder/src</param>
-              <param>php/src</param>
-              <param>postfix/src</param>
-              <param>postgres/src</param>
-              <param>public-dns-if-no-nameserver/src</param>
-              <param>rabbitmq/src</param>
-              <param>resolv/src</param>
-              <param>ruby/src</param>
-              <param>rubygems/src</param>
-              <param>sphinx/src</param>
-              <param>splunk/src</param>
-              <param>squeak/src</param>
-              <param>ssh/src</param>
-              <param>ssh-key/src</param>
-              <param>sudoers/src</param>
-              <param>squid/src</param>
-              <param>syslog-ng/src</param>
-              <param>tomcat/src</param>
-              <param>upstart/src</param>
-              <param>vpnc/src</param>
-              <param>wordpress/src</param>
-              <param>zeromq/src</param>
-              <param>zookeeper/src</param>
-            </marginaliaSourceDirectories>
-          <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
+          <pushChanges>false</pushChanges>
         </configuration>
       </plugin>
     </plugins>
   </build>
 
-  <dependencies>
-    <dependency>
-      <groupId>marginalia</groupId>
-      <artifactId>marginalia</artifactId>
-    </dependency>
-  </dependencies>
+  <!-- make sure we can find the parent pom -->
+  <repositories>
+    <repository>
+      <id>sonatype</id>
+      <url>http://oss.sonatype.org/content/repositories/releases</url>
+    </repository>
+  </repositories>
+
+  <properties>
+    <pallet.version>0.5.0</pallet.version>
+    <jclouds.version>1.0-beta-9c</jclouds.version>
+  </properties>
 </project>

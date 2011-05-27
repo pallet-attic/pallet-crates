@@ -1,14 +1,12 @@
 (ns pallet.crate.resolv
- (:use
-   [pallet.target :only [admin-group]]
-   [pallet.stevedore :only [script]]
-   [pallet.template]
-   [pallet.resource :only [defaggregate]]
-   [pallet.resource.hostinfo :only [dnsdomainname]])
- (:require
-  [pallet.utils :as utils]
-  [clojure.contrib.string :as string]
-  [clojure.contrib.logging :as logging]))
+  (:require
+   [pallet.action :as action]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.template :as template]
+   [pallet.utils :as utils]
+   [clojure.contrib.string :as string]
+   [clojure.contrib.logging :as logging]))
 
 (defn- write-key-value [key value]
   (str (name key) " " (utils/as-string value) \newline))
@@ -22,7 +20,8 @@
   (write-key-value "options" (string/join " " (map write-option options))))
 
 (defn write [domainname nameservers searches sortlist options]
-  (str (write-key-value "domain" (or domainname (str (script (dnsdomainname)))))
+  (str (write-key-value
+        "domain" (or domainname (str (stevedore/script (~lib/dnsdomainname)))))
        (string/map-str (partial write-key-value "nameserver") nameservers)
        (when (first searches)
          (write-key-value "search" (string/join " " searches)))
@@ -31,9 +30,7 @@
        (when (first options)
          (write-options options))))
 
-
-
-(deftemplate resolv-templates
+(template/deftemplate resolv-templates
   [domainname nameservers searches sortlist options]
   {{:path "/etc/resolv.conf" :owner "root" :mode "0644"}
    (write domainname nameservers searches sortlist options)})
@@ -56,7 +53,7 @@
       (logging/warn (str "Trying to set domain name to two distinct values")))
     r))
 
-(defaggregate resolv
+(action/def-aggregated-action resolv
   "Resolv configuration. Generates a resolv.conf file.
 options are:
 
@@ -64,10 +61,9 @@ options are:
 :sortlist  sortlist
 
 or one of the resolv.conf options"
-  {:use-arglist [request domainname nameservers & {:keys [search sortlist]}]}
-  (apply-resolv
-   [request args]
-   (logging/trace "apply-resolv")
-   (apply-templates
-    resolv-templates
-    (reduce merge-resolve-spec [nil [] [] [] {}] args))))
+  {:arglists '([session domainname nameservers & {:keys [search sortlist]}])}
+  [session args]
+  (logging/trace "apply-resolv")
+  (template/apply-templates
+   resolv-templates
+   (reduce merge-resolve-spec [nil [] [] [] {}] args)))

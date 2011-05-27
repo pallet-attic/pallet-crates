@@ -1,7 +1,9 @@
 (ns pallet.crate.resolv-test
   (:use pallet.crate.resolv)
   (:use clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require
+   [pallet.build-actions :as build-actions]))
 
 (use-fixtures :once with-ubuntu-script-template)
 
@@ -69,8 +71,8 @@ chmod 0644 ${file}
 chown root ${file}
 "
        (first
-        (build-resources
-         []
+        (build-actions/build-actions
+         {}
          (resolv "domain" ["123.123.123.123" "123.123.123.123"]
                  :search "some.domain" :sort "123.12.32.12"
                  :rotate true :attempts 2))))))

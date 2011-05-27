@@ -11,34 +11,35 @@
     - http://www.debuntu.org/how-to-connect-to-a-cisco-vpn-using-vpnc"
   (:require
    [pallet.parameter :as parameter]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.resource.filesystem-layout :as filesystem-layout]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.request-map :as request-map]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.package.rpmforge :as rpmforge]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.script.lib :as lib]
+   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]))
 
 (defn- default-config-home
   "Default configuration home for vpnc conf files"
   []
-  (stevedore/script (str (pkg-config-root) "/vpnc")))
+  (stevedore/script (str (~lib/pkg-config-root) "/vpnc")))
 
 (defn- default-sbin
   "Default sbin location"
   []
-  (stevedore/script (pkg-sbin)))
+  (stevedore/script (~lib/pkg-sbin)))
 
 (defn package
  "Install vpnc client from packages"
- [request & {:keys [config-home sbin]}]
+ [session & {:keys [config-home sbin]}]
  (let [config-home (or config-home (default-config-home))
        sbin (or sbin (default-sbin))]
    (->
-    request
-    (thread-expr/when-> (= :centos (request-map/os-family request))
-                        (package/add-rpmforge)
+    session
+    (thread-expr/when-> (= :centos (session/os-family session))
+                        (rpmforge/add-rpmforge)
                         (package/package-manager :update))
     (package/package "vpnc")
     (file/file (str config-home "/vpnc-script") :mode "0755")
@@ -48,48 +49,48 @@
 
 (defn- config-for-name
   "Path for given vpn-name config"
-  [request vpn-name]
+  [session vpn-name]
   (str
-   (parameter/get-for-target request [:vpnc :config-home] (default-config-home))
+   (parameter/get-for-target session [:vpnc :config-home] (default-config-home))
    "/" vpn-name ".conf"))
 
 (defn configure-vpn
   "Configure a vpn. Options as for `remote-file/remote-file`.
 
-   `pallet.resource.format/name-values` could be used to generate the
+   `pallet.config-file.format/name-values` could be used to generate the
    configuration based on a map, and passed to this function via :content.
 
-       (configure-vpn request \"myvpn\"
+       (configure-vpn session \"myvpn\"
          :content (name-values { \"IPSec gateway\" \"<gateway>\"
                                  \"IPSec ID\" \"<group-id>\"
                                  \"IPSec secret\" \"<group-psk>\"
                                  \"IKE Authmode\" \"hybrid\"
                                  \"Xauth username\" \"<username>\"
                                  \"Xauth password\" \"<password>\"}))"
-  [request name & {:as options}]
+  [session name & {:as options}]
   (->
-   request
+   session
    (thread-expr/apply-map->
     remote-file/remote-file
-    (config-for-name request name)
+    (config-for-name session name)
     :mode "0600" options)))
 
 (defn vpn-up
   "Bring the vpn up"
-  [request name]
-  (let [sbin (parameter/get-for-target request [:vpnc :sbin] (default-sbin))]
+  [session name]
+  (let [sbin (parameter/get-for-target session [:vpnc :sbin] (default-sbin))]
     (->
-     request
+     session
      (exec-script/exec-checked-script
       (format "Bring VPN %s up" name)
       (~(str sbin "/vpnc") ~name)))))
 
 (defn vpn-down
   "Bring the vpn down"
-  [request]
-  (let [sbin (parameter/get-for-target request [:vpnc :sbin] (default-sbin))]
+  [session]
+  (let [sbin (parameter/get-for-target session [:vpnc :sbin] (default-sbin))]
     (->
-     request
+     session
      (exec-script/exec-checked-script
       "Bring VPN down"
       (~(str sbin "/vpnc-disconnect"))

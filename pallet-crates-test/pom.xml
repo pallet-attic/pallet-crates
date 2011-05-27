@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.cloudhoist</groupId>
+    <artifactId>pallet-crates</artifactId>
+    <version>0.5.1-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+  <artifactId>pallet-crates-test</artifactId>
+  <version>0.5.1-SNAPSHOT</version>
+  <description>Provides test resources</description>
+  <packaging>jar</packaging>
+
+  <!-- we build a jar, rather than a test jar, as we can not switch off  -->
+  <!-- the default jar anyway -->
+
+  <dependencies>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.14</version>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
+</project>

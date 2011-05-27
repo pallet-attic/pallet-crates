@@ -1,16 +1,15 @@
 (ns pallet.crate.zookeeper
   (:require
+   [pallet.action.directory :as directory]
+   [pallet.action.file :as file]
+   [pallet.action.remote-directory :as remote-directory]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
+   [pallet.action.user :as user]
    [pallet.argument :as argument]
    [pallet.compute :as compute]
-   [pallet.request-map :as request-map]
    [pallet.parameter :as parameter]
-   [pallet.target :as target]
-   [pallet.resource.remote-directory :as remote-directory]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.file :as file]
-   [pallet.resource.service :as service]
-   [pallet.resource.user :as user]
+   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [clojure.string :as string])
   (:use
@@ -32,24 +31,23 @@
    :syncLimit 5
    :dataLogDir tx-log-path})
 
-
 (defn url "Download url"
   [version]
   (format
-   "http://www.apache.org/dist/hadoop/zookeeper/zookeeper-%s/zookeeper-%s.tar.gz"
+   "http://www.apache.org/dist/zookeeper/zookeeper-%s/zookeeper-%s.tar.gz"
    version version))
 
 (defn install
   "Install Zookeeper"
-  [request & {:keys [user group version home]
+  [session & {:keys [user group version home]
               :or {user zookeeper-user
                    group zookeeper-group
-                   version "3.3.1"}
+                   version "3.3.3"}
               :as options}]
   (let [url (url version)
         home (or home (format "%s-%s" install-path version))]
     (->
-     request
+     session
      (parameter/assoc-for
       [:zookeeper :home] home
       [:zookeeper :owner] user
@@ -78,18 +76,18 @@
       :seperator "|"))))
 
 (defn init
-  [request & {:as options}]
+  [session & {:as options}]
   (->
-   request
+   session
    (service/init-script
     "zookeeper"
     :link (format
            "%s/bin/zkServer.sh"
-           (parameter/get-for request [:zookeeper :home])))
+           (parameter/get-for session [:zookeeper :home])))
    (file/sed
     (format
      "%s/bin/zkServer.sh"
-     (parameter/get-for request [:zookeeper :home]))
+     (parameter/get-for session [:zookeeper :home]))
     {"# chkconfig:.*" ""
      "# description:.*" ""
      "# by default we allow local JMX connections"
@@ -103,18 +101,18 @@
 (defn config-files
   "Create a zookeeper configuration file.  We sort by name to preserve sequence
    across invocations."
-  [request]
-  (let [target-name (request-map/target-name request)
-        target-ip (request-map/target-ip request)
-        nodes (sort-by compute/hostname (request-map/nodes-in-tag request))
+  [session]
+  (let [target-name (session/target-name session)
+        target-ip (session/target-ip session)
+        nodes (sort-by compute/hostname (session/nodes-in-group session))
         configs (parameter/get-for
-                 request
-                 [:zookeper (keyword (request-map/tag request))])
+                 session
+                 [:zookeper (keyword (session/group-name session))])
         config (configs (keyword target-name))
-        owner (parameter/get-for request [:zookeeper :owner])
-        group (parameter/get-for request [:zookeeper :group])]
+        owner (parameter/get-for session [:zookeeper :owner])
+        group (parameter/get-for session [:zookeeper :group])]
     (->
-     request
+     session
      (remote-file/remote-file
       (format "%s/zoo.cfg" config-path)
       :content (str (string/join
@@ -148,21 +146,21 @@
 
 (defn store-configuration
   "Capture zookeeper configuration"
-  [request options]
+  [session options]
   (parameter/update-for
-   request
-   [:zookeper (keyword (request-map/tag request))]
+   session
+   [:zookeper (keyword (session/group-name session))]
    (fn [m]
-     (assoc m (request-map/target-name request) options))))
+     (assoc m (session/target-name session) options))))
 
 (defn configure
   "Configure zookeeper instance"
-  [request & {:keys [dataDir tickTime clientPort initLimit syncLimit dataLogDir
+  [session & {:keys [dataDir tickTime clientPort initLimit syncLimit dataLogDir
                      electionPort quorumPort]
               :or {client-port 2181 quorumPort 2888 electionPort 3888}
               :as options}]
   (->
-   request
+   session
    (store-configuration
     (assoc options :quorumPort quorumPort :electionPort electionPort))
    (config-files)))
@@ -170,13 +168,13 @@
 #_
 (pallet.core/defnode zk
   {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.action/phase
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.action/phase
               (pallet.crate.java/java :openjdk :jdk)
               (pallet.crate.zookeeper/install)
               (pallet.crate.zookeeper/configure)
               (pallet.crate.zookeeper/init))
-  :restart-zookeeper (pallet.resource/phase
-                      (pallet.resource.service/service
+  :restart-zookeeper (pallet.action/phase
+                      (pallet.action.service/service
                        "zookeeper" :action :restart)))

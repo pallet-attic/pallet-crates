@@ -1,10 +1,10 @@
 (ns pallet.crate.bzr
   (:require
-   [pallet.resource.package :as package]))
+   [pallet.action.package :as package]))
 
 (defn bzr
   "Install bzr"
-  [request]
-  (-> request
+  [session]
+  (-> session
       (package/package "bzr")
       (package/package "bzrtools")))

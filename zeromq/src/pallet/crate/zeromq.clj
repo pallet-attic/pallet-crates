@@ -1,5 +1,6 @@
 (ns pallet.crate.zeromq
   (:require
+<<<<<<< HEAD
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-directory :as remote-directory]
@@ -8,6 +9,12 @@
    [pallet.crate.java :as java]
    [pallet.crate.maven :as maven]
    [pallet.parameter :as parameter]))
+=======
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.remote-directory :as remote-directory]
+   [pallet.crate.iptables :as iptables]))
+>>>>>>> develop
 
 (def src-path "/opt/local/zeromq")
 (def md5s {})
@@ -21,9 +28,13 @@
 
 (defn install
   "Install zeromq from source."
+<<<<<<< HEAD
   [request & {:keys [version] :or {version "2.0.10"}}]
+=======
+  [session & {:keys [version] :or {version "2.1.7"}}]
+>>>>>>> develop
   (->
-   request
+   session
    (package/packages
     :yum ["gcc" "gcc-c++" "glib" "glibc-common" "libuuid-devel"]
     :aptitude ["build-essential" "uuid-dev"])
@@ -72,6 +83,6 @@
 
 (defn iptables-accept
   "Accept zeromq connections, by default on port 5672"
-  ([request] (iptables-accept request 5672))
-  ([request port]
-     (iptables/iptables-accept-port request port)))
+  ([session] (iptables-accept session 5672))
+  ([session port]
+     (iptables/iptables-accept-port session port)))

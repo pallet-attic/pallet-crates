@@ -1,30 +1,28 @@
 (ns pallet.crate.cloudkick-test
   (:use pallet.crate.cloudkick)
-  (:use
-   clojure.test
-   pallet.test-utils)
+  (:use clojure.test)
   (:require
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.build-actions :as build-actions]
    [pallet.core :as core]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.resource :as resource]
-   [pallet.resource.hostinfo :as hostinfo]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.package :as package]
-   [pallet.target :as target]))
+   [pallet.test-utils :as test-utils]))
 
 (deftest cloudkick-test
-  (core/defnode a {:os-family :ubuntu})
-  (let [request {:node-type a}]
+  (let [a (test-utils/make-node "a")
+        session {:server {:node a}}]
     (is (= (first
-            (build-resources
-             [:node-type a]
+            (build-actions/build-actions
+             session
              (package/package-source
               "cloudkick"
               :aptitude
               {:url "http://packages.cloudkick.com/ubuntu"
                :key-url "http://packages.cloudkick.com/cloudkick.packages.key"}
               :yum { :url (str "http://packages.cloudkick.com/redhat/"
-                               (hostinfo/architecture))})
+                               (stevedore/script (~lib/arch)))})
              (package/package-manager :update)
              (remote-file/remote-file
               "/etc/cloudkick.conf"
@@ -32,5 +30,6 @@
               "oauth_key key\noauth_secret secret\ntags any\nname node\n\n\n\n")
              (package/package "cloudkick-agent")))
            (first
-            (build-resources
-             [:node-type a] (cloudkick "node" "key" "secret")))))))
+            (build-actions/build-actions
+             session
+             (cloudkick "node" "key" "secret")))))))

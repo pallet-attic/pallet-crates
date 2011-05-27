@@ -3,22 +3,21 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.cloudhoist</groupId>
-    <artifactId>pallet-crate-pom</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
-    <relativePath>../pallet-crate-pom</relativePath>
+    <artifactId>pallet-crates</artifactId>
+    <version>0.5.1-SNAPSHOT</version>
+    <relativePath>..</relativePath>
   </parent>
   <artifactId>automated-admin-user</artifactId>
+  <version>0.5.1-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>sudoers</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>ssh-key</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>

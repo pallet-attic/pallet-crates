@@ -1,18 +1,18 @@
 (ns pallet.crate.jetty
   "Installation of jetty."
   (:require
-   [pallet.parameter :as parameter]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.remote-directory :as remote-directory]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.file :as file]
-   [pallet.resource.user :as user]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.service :as service]
-   [pallet.resource :as resource]
-   [pallet.stevedore :as stevedore]
-   [pallet.crate.java :as java]
+   [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.remote-directory :as remote-directory]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
+   [pallet.action.user :as user]
    [pallet.crate.etc-default :as etc-default]
+   [pallet.crate.java :as java]
+   [pallet.parameter :as parameter]
+   [pallet.stevedore :as stevedore]
    [clojure.string :as string])
   (:use pallet.thread-expr))
 
@@ -32,10 +32,10 @@
 
 (defn jetty
   "Install jetty via download"
-  [request & {:as options}]
+  [session & {:as options}]
   (let [path (download-path (:version options default-version))]
     (->
-     request
+     session
      (parameter/assoc-for
       [:jetty :base] install-path
       [:jetty :owner] jetty-user
@@ -79,34 +79,36 @@
      (service/service "jetty" :action :enable))))
 
 
-(resource/defcollect configure
+(def remote-file* (action/action-fn remote-file/remote-file-action))
+(def directory* (action/action-fn directory/directory))
+
+(action/def-collected-action configure
   "Configure jetty options for jetty.conf.  Each argument will be added to
    the server configuration file."
-  {:use-arglist [request option-string]}
-  (configure*
-   [request options]
-   (stevedore/chain-commands
-    (directory/directory*
-     request
-     (str install-path "/etc") :owner jetty-user :group jetty-group)
-    (remote-file/remote-file*
-     request
-     (str install-path "/etc/jetty.conf")
-     :content (string/join \newline (map first options))))))
+  {:arglists '([session option-string])}
+  [session options]
+  (stevedore/chain-commands
+   (directory*
+    session
+    (str install-path "/etc") :owner jetty-user :group jetty-group)
+   (remote-file*
+    session
+    (str install-path "/etc/jetty.conf")
+    :content (string/join \newline (map first options)))))
 
 (defn server
   "Configure the jetty server (jetty.xml)."
-  [request content]
+  [session content]
   (remote-file/remote-file
-   request
+   session
    (str install-path "/etc/jetty.xml")
    :content content)) ;; (configure "etc/jetty.xml") ; read by start.jar
 
 (defn ssl
   "Configure an ssl connector (jetty-ssl.xml)."
-  [request content]
+  [session content]
   (->
-   request
+   session
    (remote-file/remote-file
     (str install-path "/etc/jetty-ssl.xml")
     :content content)
@@ -114,9 +116,9 @@
 
 (defn context
   "Configure an application context"
-  [request name content]
+  [session name content]
   (remote-file/remote-file
-   request
+   session
    (str install-path "/contexts/" name ".xml")
    :content content))
 
@@ -128,14 +130,14 @@
 
    Other Options:
      :clear-existing true -- removes an existing exploded ${app-name} directory"
-  [request app-name & {:as opts}]
+  [session app-name & {:as opts}]
   (let [exploded-app-dir (str install-path "/webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")
         options (merge
                  {:owner jetty-user :group jetty-group :mode 600}
                  (select-keys opts remote-file/content-options))]
     (->
-     request
+     session
      (when-not->
       (:clear-existing opts)
        ;; if we're not removing an existing, try at least to make sure

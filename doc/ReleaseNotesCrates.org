@@ -1,0 +1,147 @@
+#+TITLE:     Pallet Crates - Release Notes
+
+The latest stable release is 0.4.4.
+
+The latest development release is 0.5.0.
+
+* 0.5.0
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- Update for pallet 0.5.0
+
+- Update for repository management in separate namespaces
+
+- Move to jclouds beta-9c
+
+  Change pallet.resource.* to pallet.action.*. Change stevedore calls to
+  script functions to use unquote and the pallet.script.lib namespace.
+  Change request to session.  Change build-resources to build-actions.
+
+* 0.4.4
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- Add checksum for maven 3.0.3 download
+
+- Move default maven download to 3.0.3
+
+* 0.4.3
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- Update to pallet 0.4.16
+
+- Remove compile time dependency on automated-admin-user from ssh-key
+  In order to break cyclic dependencies, make ssh-key's live test have only
+  a runtime dependency on automated-admin-user, and add the
+  automated-admin-user dependency in the pom as part of the live-test
+  profile.
+
+- Update centos java install
+  Explicitly set mode of rpm autoinstaller, and enable jpackage for compat
+  package installation
+
+- Add :triggers to hudson job configuration
+
+- Allow specification of a :service parameter path for
+  ssh-key/record-public-key
+
+- Unify hudson config file ownership and mode
+
+- Add a build-trigger publisher to the hudson job configuration
+  In order to allow specification of child projects, the :build-trigger
+  publisher is added, corresponding to the 'Build other projects' option in
+  the 'Post-build actions' in the hudson job configuration interface.
+
+  To use this as part of a job configuration add the following:
+
+      :publishers {:build-trigger
+                    {:child-projects "ChildProject, ChildProject2"}}
+
+- Update java, maven and tomcat to use pallet 0.4.15
+
+- Fix tomcat home directory to be owned by tomcat
+  The jpackage tomcat package seems to leave the tomcat user home owned by
+  root:root.
+
+- Update java, tomcat, and maven to use jpackage-utils-compat
+  Update java based crates to use the updated jpackage functions in
+  pallet.resource.package, based on the jpackage-utils-compat rpm
+
+- Fix the script that checks the tomcat install directory exists
+
+- Update hudson with ant task configuration
+
+- Update java and tomcat crates for jpackage repos disabled by default
+
+- Add pallet-crates-test to provide a test environment
+  When running tests in pallet crates, it is good to have a log4j.xml
+  setup. This allows one log4j.xml to be used for all crates.
+
+- Add Ant configuration to Hudson
+
+- Add live test for ssh-key/record-public-key
+
+
+* 0.4.2
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- Add support for svn credentials in hudson job configuration
+  In order to access a svn repository with credentials, pass the
+  :subversion-credentials keyword to the hudson job definition.  The
+  argument is a map from a name, to a map of :user-name and password
+
+* 0.4.1
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- add release.properties.in for managing release versions
+
+- Fix relative-link for parent pom
+
+- Add :version option to hudson/plugin
+  To allow running with a stable version of a plugin, add the :version
+  option to pallet.crate.hudson/plugin.  The jenkins site .../latest/..
+  link is not functional at the moment.
+
+- Updated for stevedore/map-to-arg-string with quoting
+
+- Update to vmfest 0.2.2
+
+- Update to central management of intra-crate dependencies
+  The versions of crates used for dependencies in creates test dependencies
+  is now managed via dependencyManagement in the pallet-crate-pom. Also
+  included release repository in poms to ensure parent poms can be found
+  and removed snapshot reositories, to speed updates.
+
+* 0.4.0
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** General
+
+The pallet crates have been moved into the pallet-crates project.
+

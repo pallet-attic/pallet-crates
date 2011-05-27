@@ -5,11 +5,11 @@
    pallet.test-utils)
   (:require
    [pallet.crate.mysql :as mysql]
-   [pallet.resource :as resource]))
+   [pallet.build-actions :as build-actions]))
 
 (deftest invoke-test
-  (is (build-resources
-       []
+  (is (build-actions/build-actions
+       {}
        (mysql/mysql-server "pw")
        (wordpress
         "mysql-wp-username" "mysql-wp-password" "mysql-wp-database")

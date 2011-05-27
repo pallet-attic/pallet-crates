@@ -1,15 +1,14 @@
 (ns pallet.crate.postgres
   "Install and configure PostgreSQL."
   (:require
-   [pallet.resource.package :as package]
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.file :as file]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.resource-when :as resource-when]
-   [pallet.stevedore :as stevedore]
+   [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
    [pallet.parameter :as parameter]
+   [pallet.session :as session]
+   [pallet.stevedore :as stevedore]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
    [clojure.string :as str])
@@ -20,9 +19,9 @@
 (defn postgres
   "version should be a string identifying the major.minor version number desired
    (e.g. \"9.0\")."
-  [request version]
-  (let [os-family (request-map/os-family request)]
-    (-> request
+  [session version]
+  (let [os-family (session/os-family session)]
+    (-> session
         (when-> (= os-family :ubuntu)
                 (when-> (= version "9.0")
                         (package/package-source
@@ -143,13 +142,13 @@
                   keywords/strings).
    :conf-path   - A string suitable for passing to format before a string of the
                   version."
-  [request & {:keys [records conf-path]
+  [session & {:keys [records conf-path]
               :or {records []
                    conf-path "/etc/postgresql/%s/main/pg_hba.conf"}}]
   (let [hba-contents (apply str pallet-cfg-preamble
                             (map format-hba-record records))
-        version (parameter/get-for request [:postgresql :version])]
-    (-> request
+        version (parameter/get-for session [:postgresql :version])]
+    (-> session
         (remote-file/remote-file (format conf-path version)
          :content hba-contents
          :literal true))))
@@ -196,13 +195,13 @@
                   such).
    :conf-path   - A string suitable for passing to format before a string of
                   the version."
-  [request & {:keys [options conf-path]
+  [session & {:keys [options conf-path]
               :or {options {}
                    conf-path "/etc/postgresql/%s/main/postgresql.conf"}}]
   (let [contents (apply str pallet-cfg-preamble
                         (map format-parameter options))
-        version (parameter/get-for request [:postgresql :version])]
-    (-> request
+        version (parameter/get-for session [:postgresql :version])]
+    (-> session
         (remote-file/remote-file (format conf-path version)
                                  :content contents
                                  :literal true))))
@@ -218,10 +217,10 @@
      :as-user username       - Run this script having sudoed to this (system)
                                user. Default: postgres
      :ignore-result          - Ignore any error return value out of psql."
-  [request sql-script & {:keys [as-user ignore-result]
+  [session sql-script & {:keys [as-user ignore-result]
                          :as options
                          :or {as-user "postgres"}}]
-  (-> request
+  (-> session
       (exec-script/exec-checked-script
        "PostgreSQL temp command file"
        (var psql_commands (file/make-temp-file "postgresql")))
@@ -251,7 +250,7 @@
 
    Example: (create-database
               \"my-database\" :db-parameters [:encoding \"'LATIN1'\"])"
-  [request db-name & rest]
+  [session db-name & rest]
   (let [{:keys [db-parameters] :as options} rest
         db-parameters-str (str/join " " (map name db-parameters))]
     ;; Postgres simply has no way to check if a database exists and issue a
@@ -260,7 +259,7 @@
     ;; you're screwed. Instead, we just use the fact that trying to create an
     ;; existing database does nothing and stuff the output/error return.
     (apply postgresql-script
-           request
+           session
            (format "CREATE DATABASE %s %s;" db-name db-parameters-str)
            (conj (vec rest) :ignore-result true))))
 
@@ -289,10 +288,10 @@
 
    Example (create-role
              \"myuser\" :user-parameters [:encrypted :password \"'mypasswd'\"])"
-  [request username & rest]
+  [session username & rest]
   (let [{:keys [user-parameters] :as options} rest
         user-parameters-str (str/join " " (map name user-parameters))]
     (apply postgresql-script
-           request
+           session
            (format create-role-pgsql username user-parameters-str)
            rest)))

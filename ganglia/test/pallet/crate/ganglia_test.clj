@@ -2,8 +2,8 @@
   (:use pallet.crate.ganglia)
   (:use clojure.test)
   (:require
-   [pallet.test-utils :as test-utils]
-   [pallet.resource :as resource]))
+   [pallet.build-actions :as build-actions]
+   [pallet.test-utils :as test-utils]))
 
 (deftest format-value-test
   (testing "basic map"
@@ -20,9 +20,11 @@
            (format-value {:include "/a/b/c"})))))
 
 (testing "invoke"
-  (is (test-utils/build-resources
-      [:target-node (test-utils/make-node "tag" :id "id")
-       :node-type {:image {:os-family :ubuntu} :tag :tag}]
+  (is (build-actions/build-actions
+       (test-utils/target-server
+        :image {:os-family :ubuntu}
+        :group-name :gn
+        :node (test-utils/make-node "gn" :id "id"))
        (install)
        (monitor)
        (configure)

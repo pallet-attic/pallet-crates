@@ -1,17 +1,15 @@
 (ns pallet.crate.mysql
   (:require
-   [pallet.request-map :as request-map]
-   [pallet.resource :as resource]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.package :as package]
-   [pallet.resource.service :as service]
+   [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.service :as service]
    [pallet.parameter :as parameter]
+   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
+   [pallet.template :as template]
    [clojure.string :as string])
   (:use
-   [pallet.resource :only [defresource]]
-   [pallet.stevedore :only [script]]
-   [pallet.template :only [deftemplate apply-templates]]
    pallet.thread-expr))
 
 (def mysql-my-cnf
@@ -19,9 +17,9 @@
       :aptitude "/etc/mysql/my.cnf"})
 
 (defn mysql-client
-  [request]
+  [session]
   (package/packages
-   request
+   session
    :yum [ "mysql-devel"]
    :aptitude [ "libmysqlclient15-dev" ]))
 
@@ -37,9 +35,9 @@
 
 (defn mysql-server
   "Install mysql server from packages"
-  [request root-password & {:keys [start-on-boot] :or {start-on-boot true}}]
+  [session root-password & {:keys [start-on-boot] :or {start-on-boot true}}]
   (->
-   request
+   session
    (package/package-manager
     :debconf
     (str "mysql-server-5.1 mysql-server/root_password password " root-password)
@@ -50,7 +48,7 @@
     (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot))
    (package/package "mysql-server")
    (when->
-    (= :yum (request-map/packager request))
+    (= :yum (session/packager session))
     (when->
      start-on-boot
      (service/service "mysqld" :action :enable))
@@ -62,55 +60,54 @@
       (echo "Root password already set"))))
    (assoc-in [:parameters :mysql :root-password] root-password)))
 
-(deftemplate my-cnf-template
-  [request string]
-  {{:path (mysql-my-cnf (:target-packager request))
+(template/deftemplate my-cnf-template
+  [session string]
+  {{:path (mysql-my-cnf (session/packager session))
     :owner "root" :mode "0440"}
    string})
 
-(defresource mysql-conf
+(action/def-bash-action mysql-conf
   "my.cnf configuration file for mysql"
-  (mysql-conf*
-   [request config]
-   (apply-templates #(my-cnf-template request %) [config])))
+  [session config]
+  (template/apply-templates #(my-cnf-template session %) [config]))
 
 (defn mysql-script
   "Execute a mysql script"
-  [request username password sql-script]
+  [session username password sql-script]
   (exec-script/exec-checked-script
-   request
+   session
    "MYSQL command"
    ~(mysql-script* username password sql-script)))
 
 (defn create-database
-  ([request name]
+  ([session name]
      (create-database
-      request name "root"
-      (parameter/get-for request [:mysql :root-password])))
-  ([request name username root-password]
+      session name "root"
+      (parameter/get-for session [:mysql :root-password])))
+  ([session name username root-password]
      (mysql-script
-      request
+      session
       username root-password
       (format "CREATE DATABASE IF NOT EXISTS `%s`" name))))
 
 (defn create-user
-  ([request user password]
+  ([session user password]
      (create-user
-      request user password "root"
-      (parameter/get-for request [:mysql :root-password])))
-  ([request user password username root-password]
+      session user password "root"
+      (parameter/get-for session [:mysql :root-password])))
+  ([session user password username root-password]
      (mysql-script
-      request
+      session
       username root-password
       (format sql-create-user user password))))
 
 (defn grant
-  ([request privileges level user]
+  ([session privileges level user]
      (grant
-      request privileges level user "root"
-      (parameter/get-for request [:mysql :root-password])))
-  ([request privileges level user username root-password]
+      session privileges level user "root"
+      (parameter/get-for session [:mysql :root-password])))
+  ([session privileges level user username root-password]
      (mysql-script
-      request
+      session
       username root-password
       (format "GRANT %s ON %s TO %s" privileges level user))))

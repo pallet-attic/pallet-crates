@@ -1,18 +1,18 @@
 (ns pallet.crate.ssh
   "Crate for managing ssh"
   (:require
-   [pallet.target :as target]
    [pallet.argument :as argument]
-   [pallet.request-map :as request-map]
-   pallet.crate.iptables
-   pallet.resource.package
-   pallet.resource.service
+   [pallet.session :as session]
+   [pallet.crate.iptables :as iptables]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
    [pallet.crate.nagios-config :as nagios-config]))
 
 (defn openssh
   "Install OpenSSH"
   [request]
-  (pallet.resource.package/packages
+  (package/packages
    request
    :yum ["openssh-clients" "openssh"]
    :aptitude ["openssh-client" "openssh-server"]
@@ -30,13 +30,13 @@
   [request config]
   (->
    request
-   (pallet.resource.remote-file/remote-file
+   (remote-file/remote-file
     "/etc/ssh/sshd_config"
     :mode "0644"
     :owner "root"
     :content config)
-   (pallet.resource.service/service
-    (service-name (request-map/packager request))
+   (service/service
+    (service-name (session/packager request))
     :action :reload)))
 
 
@@ -44,14 +44,14 @@
   "Accept ssh, by default on port 22"
   ([request] (iptables-accept request 22))
   ([request port]
-     (pallet.crate.iptables/iptables-accept-port request port)))
+     (iptables/iptables-accept-port request port)))
 
 (defn iptables-throttle
   "Throttle ssh connection attempts, by default on port 22"
   ([request] (iptables-throttle request 22))
   ([request port] (iptables-throttle request port 60 6))
   ([request port time-period hitcount]
-     (pallet.crate.iptables/iptables-throttle
+     (iptables/iptables-throttle
       request
       "SSH_CHECK" port "tcp" time-period hitcount)))
 

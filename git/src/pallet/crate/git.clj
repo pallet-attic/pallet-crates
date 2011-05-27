@@ -1,18 +1,19 @@
 (ns pallet.crate.git
   "Crate to install git."
   (:require
-   [pallet.request-map :as request-map]
-   [pallet.resource.package :as package]
+   [pallet.session :as session]
+   [pallet.action.package :as package]
+   [pallet.action.package.epel :as epel]
    [pallet.thread-expr :as thread-expr]))
 
 (defn git
   "Install git"
-  [request]
+  [session]
   (->
-   request
+   session
    (thread-expr/when->
-    (#{:amzn-linux :centos} (request-map/os-family request))
-    (package/add-epel :version "5-4"))
+    (#{:amzn-linux :centos} (session/os-family session))
+    (epel/add-epel :version "5-4"))
    (package/package-manager :update)
    (package/packages
     :yum ["git" "git-email"]
