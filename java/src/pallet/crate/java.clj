@@ -97,7 +97,9 @@
 (defn make-compat
   [session update]
   ;; arch is hard coded to i586 for ix86 in the spec file
-  (let [pkg (format "java-1.6.0-sun-compat-1.6.0.%s-1jpp.i586" update)]
+  (let [arch (stevedore/script
+              (pipe (~lib/arch) (sed -e (quoted "s/[1-6]86/586/"))))
+        pkg (format "java-1.6.0-sun-compat-1.6.0.%s-1jpp.%s" update arch)]
     (->
      session
      (remote-file/remote-file
@@ -135,7 +137,7 @@
             " \n")
            "java-1.6.0-sun-compat.spec")
           (rpmbuild -ba java-1.6.0-sun-compat.spec)
-          (rpm -Uvh ~(str "/usr/src/redhat/RPMS/i586/" pkg ".rpm"))))))))
+          (rpm -Uvh ~(str "/usr/src/redhat/RPMS/" arch "/" pkg ".rpm"))))))))
 
 (def sun-paths
   {:jdk {:jre "/usr/java/%s%s/jre"
