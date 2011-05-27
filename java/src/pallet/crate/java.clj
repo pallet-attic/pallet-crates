@@ -8,6 +8,7 @@
    installed."
   (:require
    [pallet.action :as action]
+   [pallet.action.environment :as environment]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.package :as package]
    [pallet.action.package.jpackage :as jpackage]
@@ -211,6 +212,28 @@
              (slave-binaries :jre))))
          (alternatives --auto java))))))
 
+
+(script/defscript java-home [])
+(script/defimpl java-home :default []
+  @("dirname" @("dirname" @("readlink" -f @("which" java)))))
+(script/defimpl java-home [#{:aptitude}] []
+  @("dirname" @("dirname" @("update-alternatives" --list java))))
+(script/defimpl java-home [#{:darwin :os-x}] []
+   @JAVA_HOME)
+
+(script/defscript jdk-home [])
+(script/defimpl jdk-home :default []
+  @("dirname" @("dirname" @("readlink" -f @("which" javac)))))
+(script/defimpl jdk-home [#{:aptitude}] []
+  @("dirname" @("dirname" @("update-alternatives" --list javac))))
+(script/defimpl jdk-home [#{:darwin :os-x}] []
+   @JAVA_HOME)
+
+(script/defscript jre-lib-security [])
+(script/defimpl jre-lib-security :default []
+  (str @(update-java-alternatives -l "|" cut "-d ' '" -f 3 "|" head -1)
+       "/jre/lib/security/"))
+
 (defn java
   "Install java. Options can be :sun, :openjdk, :jdk, :jre.
    By default openjdk will be installed.
@@ -220,8 +243,8 @@
   [session & options]
   (let [vendors (or (seq (filter vendor-keywords options))
                     [:sun])
-        components (or (seq (filter #{:jdk :jre} options))
-                       [:jdk])
+        components (into #{} (or (seq (filter #{:jdk :jre} options))
+                                 #{:jdk}))
         packager (session/packager session)
         os-family (session/os-family session)
         use-jpackage (use-jpackage session)
@@ -280,37 +303,21 @@
                    {:action-id ::install-java-compat
                     :always-after
                     :pallet.action.package.jpackage/install-jpackage-compat}
-                   (make-compat (last (sun-version rpm-bin)))
-                   ;; (package/package
-                   ;;  "java-1.6.0-sun-compat"
-                   ;;  :enable (parameter/get-for-target
-                   ;;           request [:jpackage-repos]))
-                   ))))
+                   (make-compat (last (sun-version rpm-bin)))))))
        (package/package-manager :update)
        (for-> [vendor vendors]
               (for-> [component components]
-                     (vc vendor component)))))))
-
-(script/defscript java-home [])
-(script/defimpl java-home :default []
-  @("dirname" @("dirname" @("readlink" -f @("which" java)))))
-(script/defimpl java-home [#{:aptitude}] []
-  @("dirname" @("dirname" @("update-alternatives" --list java))))
-(script/defimpl java-home [#{:darwin :os-x}] []
-   @JAVA_HOME)
-
-(script/defscript jdk-home [])
-(script/defimpl jdk-home :default []
-  @("dirname" @("dirname" @("readlink" -f @("which" javac)))))
-(script/defimpl jdk-home [#{:aptitude}] []
-  @("dirname" @("dirname" @("update-alternatives" --list javac))))
-(script/defimpl jdk-home [#{:darwin :os-x}] []
-   @JAVA_HOME)
-
-(script/defscript jre-lib-security [])
-(script/defimpl jre-lib-security :default []
-  (str @(update-java-alternatives -l "|" cut "-d ' '" -f 3 "|" head -1)
-       "/jre/lib/security/"))
+                     (vc vendor component)))
+       (when->
+        (components :jdk)
+        (environment/system-environment
+         "java"
+         {"JAVA_HOME" (stevedore/script (~jdk-home))}))
+       (when->
+        (and (components :jre) (not (components :jdk)))
+        (environment/system-environment
+         "java"
+         {"JAVA_HOME" (stevedore/script (~java-home))}))))))
 
 (defn jce-policy-file
   "Installs a local JCE policy jar at the given path in the remote JAVA_HOME's

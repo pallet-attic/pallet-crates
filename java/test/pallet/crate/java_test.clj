@@ -1,6 +1,7 @@
 (ns pallet.crate.java-test
   (:use pallet.crate.java)
   (:require
+   [pallet.action.environment :as environment]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.package :as package]
@@ -52,7 +53,10 @@
            (debconf "sun-java6-bin")
            (package/package "sun-java6-bin")
            (debconf "sun-java6-jdk")
-           (package/package "sun-java6-jdk")))
+           (package/package "sun-java6-jdk")
+           (environment/system-environment
+            "java"
+            {"JAVA_HOME" (stevedore/script (~jdk-home))})))
          (first
           (build-actions/build-actions
            {}
@@ -71,7 +75,10 @@
            (debconf "sun-java6-bin")
            (package/package "sun-java6-bin")
            (debconf "sun-java6-jdk")
-           (package/package "sun-java6-jdk")))
+           (package/package "sun-java6-jdk")
+           (environment/system-environment
+            "java"
+            {"JAVA_HOME" (stevedore/script (~jdk-home))})))
          (first
           (build-actions/build-actions
            {}
@@ -82,7 +89,10 @@
           (build-actions/build-actions
            {}
            (package/package-manager :update)
-           (package/package "openjdk-6-jre")))
+           (package/package "openjdk-6-jre")
+           (environment/system-environment
+            "java"
+            {"JAVA_HOME" (stevedore/script (~java-home))})))
          (first
           (build-actions/build-actions
            {}
@@ -91,7 +101,10 @@
           (build-actions/build-actions
            {:server {:image {} :packager :pacman}}
            (package/package-manager :update)
-           (package/package "openjdk6")))
+           (package/package "openjdk6")
+           (environment/system-environment
+            "java"
+            {"JAVA_HOME" (stevedore/script (~java-home))})))
          (first
           (build-actions/build-actions
            {:server {:image {} :packager :pacman}}
@@ -129,7 +142,11 @@
                   ("test" (file-exists? (str (~java-home) "/bin/java"))))
                  (exec-script/exec-checked-script
                   "check javac installed under jdk home"
-                  ("test" (file-exists? (str (~jdk-home) "/bin/javac")))))}}}
+                  ("test" (file-exists? (str (~jdk-home) "/bin/javac"))))
+                 (exec-script/exec-checked-script
+                  "check JAVA_HOME set to jdk home"
+                  (source "/etc/environment")
+                  ("test" (= (~jdk-home) @JAVA_HOME))))}}}
      (core/lift (val (first node-types)) :phase :verify :compute compute))))
 
 ;; To run this test you will need to download the Oracle Java rpm downloads in
@@ -165,5 +182,9 @@
                  ("test" (file-exists? (str (~java-home) "/bin/java"))))
                 (exec-script/exec-checked-script
                  "check javac installed under jdk home"
-                 ("test" (file-exists? (str (~jdk-home) "/bin/javac")))))}}}
+                 ("test" (file-exists? (str (~jdk-home) "/bin/javac"))))
+                (exec-script/exec-checked-script
+                 "check JAVA_HOME set to jdk home"
+                 (source "/etc/profile.d/java.sh")
+                 ("test" (= (~jdk-home) @JAVA_HOME))))}}}
     (core/lift (val (first node-types)) :phase :verify :compute compute))))
