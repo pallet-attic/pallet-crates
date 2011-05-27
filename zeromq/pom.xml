@@ -18,24 +18,20 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>maven</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>git</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>automated-admin-user</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>java</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>

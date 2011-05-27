@@ -1,20 +1,13 @@
 (ns pallet.crate.zeromq
   (:require
-<<<<<<< HEAD
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-directory :as remote-directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.package :as package]
+   [pallet.action.remote-directory :as remote-directory]
    [pallet.crate.git :as git]
    [pallet.crate.iptables :as iptables]
    [pallet.crate.java :as java]
    [pallet.crate.maven :as maven]
    [pallet.parameter :as parameter]))
-=======
-   [pallet.action.exec-script :as exec-script]
-   [pallet.action.package :as package]
-   [pallet.action.remote-directory :as remote-directory]
-   [pallet.crate.iptables :as iptables]))
->>>>>>> develop
 
 (def src-path "/opt/local/zeromq")
 (def md5s {})
@@ -28,11 +21,7 @@
 
 (defn install
   "Install zeromq from source."
-<<<<<<< HEAD
-  [request & {:keys [version] :or {version "2.0.10"}}]
-=======
   [session & {:keys [version] :or {version "2.1.7"}}]
->>>>>>> develop
   (->
    session
    (package/packages
@@ -53,9 +42,9 @@
 
 (defn install-jzmq
   "Install jzmq from source. You must install zeromq first."
-  [request & {:keys [version]}]
+  [session & {:keys [version] :or {version "master"}}]
   (->
-   request
+   session
    (maven/package)
    (git/git)
    (package/packages
@@ -69,9 +58,9 @@
     (cd (quoted @tmpdir))
     (git clone "https://github.com/zeromq/jzmq.git")
 
+    (git checkout ~version)
     (cd "jzmq")
-    (export (str "JAVA_HOME="
-                 @(dirname @(dirname @(update-alternatives --list javac)))))
+    (export (str "JAVA_HOME=" (~java-home)))
 
     ("./autogen.sh")
     ("./configure")
@@ -79,7 +68,7 @@
     (make install) ; install the jni lib
     ;; Install jar to local repo.
     ;; We skip tests as pom isn't set up for configuring java.library.path
-    ("mvn" "-q" "install" "-Dmaven.test.skip=true"))))
+    ("mvn" "-q" "install" "-DskipTests=true"))))
 
 (defn iptables-accept
   "Accept zeromq connections, by default on port 5672"
