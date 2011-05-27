@@ -12,12 +12,12 @@
   "The url for downloading zeromq"
   [version]
   (format
-   "http://www.zeromq.org/local--files/area:download/zeromq-%s.tar.gz"
+   "http://download.zeromq.org/zeromq-%s.tar.gz"
    version))
 
 (defn install
   "Install zeromq from source."
-  [session & {:keys [version] :or {version "2.0.9"}}]
+  [session & {:keys [version] :or {version "2.1.7"}}]
   (->
    session
    (package/packages
