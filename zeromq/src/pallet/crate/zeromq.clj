@@ -7,7 +7,8 @@
    [pallet.crate.iptables :as iptables]
    [pallet.crate.java :as java]
    [pallet.crate.maven :as maven]
-   [pallet.parameter :as parameter]))
+   [pallet.parameter :as parameter]
+   [pallet.script.lib :as lib]))
 
 (def src-path "/opt/local/zeromq")
 (def md5s {})
@@ -41,7 +42,11 @@
    ))
 
 (defn install-jzmq
-  "Install jzmq from source. You must install zeromq first."
+  "Install jzmq from source. You must install zeromq first.
+
+   By default this builds git master, but it is recommended that you pass
+   a version (something recognised by git checkout) to obtain a stable
+   version. See https://github.com/zeromq/jzmq/issues/23 "
   [session & {:keys [version] :or {version "master"}}]
   (->
    session
@@ -54,13 +59,13 @@
    (exec-script/exec-checked-script
     "Build jzmq"
 
-    (var tmpdir (quoted (make-temp-dir "rf")))
+    (var tmpdir (quoted (~lib/make-temp-dir "rf")))
     (cd (quoted @tmpdir))
     (git clone "https://github.com/zeromq/jzmq.git")
 
-    (git checkout ~version)
     (cd "jzmq")
-    (export (str "JAVA_HOME=" (~java-home)))
+    (git checkout ~version)
+    (export (str "JAVA_HOME=" (~java/jdk-home)))
 
     ("./autogen.sh")
     ("./configure")

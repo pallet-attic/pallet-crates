@@ -5,14 +5,16 @@
   (:use clojure.test
         pallet.test-utils)
   (:require
+   [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.java :as java]
    [pallet.live-test :as live-test]
-   [pallet.resource :as resource]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.resource.package :as package]
+   [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.phase :as phase]
    [pallet.test-utils :as test-utils]))
 
 (deftest invocation
@@ -28,16 +30,17 @@
      {:zeromq
       {:image image
        :count 1
-       :phases {:bootstrap (resource/phase
+       :phases {:bootstrap (phase/phase-fn
                             (package/minimal-packages)
                             (package/package-manager :update)
                             (automated-admin-user/automated-admin-user))
-                :configure (resource/phase
+                :configure (phase/phase-fn
                             (java/java :openjdk :jdk)
                             (install)
                             (install-jzmq))
-                :verify (resource/phase
+                :verify (phase/phase-fn
                          (exec-script/exec-checked-script
                           "Check jar exists"
-                          (file-exists? "/usr/local/share/java/zmq.jar")))}}}
+                          (test
+                           (file-exists? "/usr/local/share/java/zmq.jar"))))}}}
      (core/lift (:zeromq node-types) :phase :verify :compute compute))))
