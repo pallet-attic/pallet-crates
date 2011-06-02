@@ -4,7 +4,6 @@
    [pallet.action.package :as package]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
-   [pallet.crate :as crate]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.postgres :as postgres]
    [pallet.live-test :as live-test]
