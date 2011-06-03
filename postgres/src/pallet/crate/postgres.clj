@@ -165,7 +165,7 @@
                   settings-map)]
     (parameter/assoc-for-target
      session
-     [:postgresql :settings]
+     [:settings :postgresql]
      (assoc (select-keys settings non-options-in-settings)
        :options (apply dissoc settings non-options-in-settings)))))
 
@@ -174,7 +174,7 @@
    (e.g. \"9.0\")."
   ([session]
      (let [os-family (session/os-family session)
-           settings (parameter/get-for-target session [:postgresql :settings])
+           settings (parameter/get-for-target session [:settings :postgresql])
            packages (:packages settings)
            package-source (:package-source settings)
            version (:version settings)]
@@ -220,7 +220,7 @@
       (settings
        (merge
         default-settings-map
-        (parameter/get-for-target session [:postgresql :settings] nil)
+        (parameter/get-for-target session [:settings :postgresql] nil)
         {:version version}))
       (postgres))))
 
@@ -290,7 +290,7 @@
                                            :message
                                            (format
                                             "The fifth item in %s does not appear to be an IP mask or auth method."
-                                            (name record))))))
+                                            (pr-str record))))))
                        (condition/raise
                         :type :postgres-invalid-hba-record
                         :message (format
@@ -337,7 +337,7 @@
    :conf-path   - A format string for the full file path, with a %s for the
                   version."
   [session & {:keys [records conf-path]}]
-  (let [settings (parameter/get-for-target session [:postgresql :settings] {})
+  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
         version (:version settings)
         records (or records (:permissions settings) [])
         conf-path (or
@@ -401,7 +401,7 @@
    :conf-path   - A format string for the file path, with a %s for
                   the version."
   [session & {:keys [options conf-path]}]
-  (let [settings (parameter/get-for-target session [:postgresql :settings] {})
+  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
         version (:version settings)
         conf-path (or
                    conf-path
@@ -418,7 +418,7 @@
 (defn initdb
   "Initialise a db"
   [session]
-  (let [settings (parameter/get-for-target session [:postgresql :settings] {})
+  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
         initdb-via (:initdb-via settings :initdb)
         data-dir (-> settings :options :data_directory)]
     (case initdb-via
@@ -442,32 +442,31 @@
 (defn postgresql-script
   "Execute a postgresql script.
 
+   The script is specified using remote-file content options (:content for
+   a literal script)
+
    Options for how this script should be run:
      :as-user username       - Run this script having sudoed to this (system)
                                user. Default: postgres
      :ignore-result          - Ignore any error return value out of psql."
-  [session sql-script & {:keys [as-user ignore-result] :as options}]
-  (let [settings (parameter/get-for-target session [:postgresql :settings] {})
-        as-user (or as-user (-> settings :owner))]
+  [session & {:keys [as-user ignore-result] :as options}]
+  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
+        as-user (or as-user (-> settings :owner))
+        file (str (gensym "postgresql") ".sql")]
     (-> session
-        (exec-script/exec-checked-script
-         "PostgreSQL temp command file"
-         (var psql_commands (~lib/make-temp-file "postgresql")))
-        (remote-file/remote-file
-         (stevedore/script @psql_commands)
+        (apply-map->
+         remote-file/remote-file
+         file
          :no-versioning true
-         :literal true
-         :content sql-script)
+         (select-keys options remote-file/content-options))
         (exec-script/exec-script
          ;; Note that we stuff all output. This is because certain commands in
          ;; PostgreSQL are idempotent but spit out an error and an error exit
          ;; anyways (eg, create database on a database that already exists does
          ;; nothing, but is counted as an error).
-         ("{\n" sudo "-u" ~as-user psql "-f" @psql_commands > "/dev/null" "2>&1"
-          ~(when ignore-result "|| 0") "\n}"))
-        (remote-file/remote-file
-         (stevedore/script @psql_commands)
-         :action :delete))))
+         ("{\n" sudo "-u" ~as-user psql "-f" ~file > "/dev/null" "2>&1"
+          ~(when ignore-result "|| true") "\n}"))
+        (remote-file/remote-file file :action :delete))))
 
 (defn create-database
   "Create a database if it does not exist.
@@ -489,7 +488,8 @@
     ;; existing database does nothing and stuff the output/error return.
     (apply postgresql-script
            session
-           (format "CREATE DATABASE %s %s;" db-name db-parameters-str)
+           :content (format "CREATE DATABASE %s %s;" db-name db-parameters-str)
+           :literal true
            (conj (vec rest) :ignore-result true))))
 
 ;; This is a format string that generates a temporary PL/pgsql function to
@@ -522,7 +522,8 @@
         user-parameters-str (string/join " " (map name user-parameters))]
     (apply postgresql-script
            session
-           (format create-role-pgsql username user-parameters-str)
+           :content (format create-role-pgsql username user-parameters-str)
+           :literal true
            rest)))
 
 
@@ -536,7 +537,7 @@
    name is looked up in the request parameters."
   [session & {:keys [action if-config-changed if-flag] :as options}]
   (let [service (parameter/get-for-target
-                 session [:postgresql :settings :service])
+                 session [:settings :postgresql :service])
         options (if if-config-changed
                   (assoc options :if-flag postgresql-config-changed-flag)
                   options)]

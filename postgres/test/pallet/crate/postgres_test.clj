@@ -19,7 +19,7 @@
     (postgres/postgres "8.0")
     (postgres/postgres "9.0")
     (postgres/hba-conf :records [])
-    (postgres/postgresql-script "some script")
+    (postgres/postgresql-script :content "some script")
     (postgres/create-database "db")
     (postgres/create-role "user"))))
 
