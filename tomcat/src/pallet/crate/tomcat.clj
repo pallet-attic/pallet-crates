@@ -66,6 +66,26 @@
 (def ^{:doc "Flag for recognising changes to configuration"}
   tomcat-config-changed-flag "tomcat-config")
 
+(defn settings
+  "Calculates and attaches the settings to the request object, for later use."
+  [session & {:keys [user group version package service base-dir config-dir]
+              :as options}]
+  (let [package (or package
+                    (version-package version version)
+                    (package-name (session/os-family session))
+                    (package-name (session/packager session)))
+        tomcat-user (tomcat-user-group-name (session/packager session))
+        user (or user tomcat-user)
+        group (or group tomcat-user)
+        service (or service package)
+        base-dir (or base-dir (str tomcat-base package "/"))
+        config-dir (str tomcat-config-root package "/")]
+    (-> session
+        (parameter/assoc-for-target [:tomcat :base] base-dir
+                                    [:tomcat :config-path] config-dir
+                                    [:tomcat :owner] user
+                                    [:tomcat :group] group
+                                    [:tomcat :service] service))))
 
 (defn install
   "Install tomcat from the standard package sources.
@@ -86,17 +106,18 @@
    - :config-dir the directory used for the configuration files"
   [session & {:keys [user group version package service
                      base-dir config-dir] :as options}]
-  (let [package (or
+  (let [session (apply settings session
+                       (apply concat options)) ;; Pick up the settings.
+        package (or
                  package
                  (version-package version version)
                  (package-name (session/os-family session))
                  (package-name (session/packager session)))
-        tomcat-user (tomcat-user-group-name (session/packager session))
-        user (or user tomcat-user)
-        group (or group tomcat-user)
-        service (or service package)
-        base-dir (or base-dir (str tomcat-base package "/"))
-        config-dir (str tomcat-config-root package "/")
+        user (parameter/get-for-target session [:tomcat :owner])
+        group (parameter/get-for-target session [:tomcat :group])
+        service (parameter/get-for-target session [:tomcat :service])
+        base-dir (parameter/get-for-target session [:tomcat :base])
+        config-dir (parameter/get-for-target session [:tomcat :config-path])
         use-jpackage (and
                       (= :centos (session/os-family session))
                       (re-matches
