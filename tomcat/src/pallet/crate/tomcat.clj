@@ -66,10 +66,31 @@
 (def ^{:doc "Flag for recognising changes to configuration"}
   tomcat-config-changed-flag "tomcat-config")
 
+(declare default-settings-map)
+
+(defn settings-map
+  "Build a settings map for tomcat, containing all target independent
+   configuration.
+     :user        owner for the tomcat service
+     :group       group for the tomcat service
+     :version     tomcat major version
+     :package     tomcat package name to install
+     :service     tomcat service name
+     :base-dir    location of tomcat install
+     :config-dir  location of tomcat configuration files
+     :use-jpackge flag to control use of jpackage
+     :server      tomcat server definition (result of calling tomcat/server)
+     :policies    tomcat policies, as a sequence of [seq-number name grants]"
+  [{:keys [user group version package service base-dir config-dir use-jpackage
+           server policies]
+    :as options}]
+  (merge default-settings-map options))
+
 (defn settings
   "Calculates and attaches the settings to the request object, for later use."
-  [session & {:keys [user group version package service base-dir config-dir]
-              :as options}]
+  [session {:keys [user group version package service base-dir config-dir
+                   use-jpackage server]
+            :as settings-map}]
   (let [package (or package
                     (version-package version version)
                     (package-name (session/os-family session))
@@ -79,13 +100,25 @@
         group (or group tomcat-user)
         service (or service package)
         base-dir (or base-dir (str tomcat-base package "/"))
-        config-dir (str tomcat-config-root package "/")]
+        config-dir (str tomcat-config-root package "/")
+        use-jpackage (if (nil? use-jpackage)
+                       (and
+                        (= :centos (session/os-family session))
+                        (re-matches
+                         #"5\.[0-5]" (session/os-version session)))
+                       use-jpackage)]
     (-> session
-        (parameter/assoc-for-target [:tomcat :base] base-dir
-                                    [:tomcat :config-path] config-dir
-                                    [:tomcat :owner] user
-                                    [:tomcat :group] group
-                                    [:tomcat :service] service))))
+        (parameter/assoc-for-target
+         [:tomcat]
+         (merge
+          settings-map
+          {:package package
+           :base base-dir
+           :config-path config-dir
+           :owner user
+           :group group
+           :service service
+           :use-jpackage use-jpackage})))))
 
 (defn install
   "Install tomcat from the standard package sources.
@@ -104,48 +137,32 @@
    - :service    the name of the init service installed by the package
    - :base-dir   the install base used by the package
    - :config-dir the directory used for the configuration files"
-  [session & {:keys [user group version package service
-                     base-dir config-dir] :as options}]
-  (let [session (apply settings session
-                       (apply concat options)) ;; Pick up the settings.
-        package (or
-                 package
-                 (version-package version version)
-                 (package-name (session/os-family session))
-                 (package-name (session/packager session)))
-        user (parameter/get-for-target session [:tomcat :owner])
-        group (parameter/get-for-target session [:tomcat :group])
-        service (parameter/get-for-target session [:tomcat :service])
-        base-dir (parameter/get-for-target session [:tomcat :base])
-        config-dir (parameter/get-for-target session [:tomcat :config-path])
-        use-jpackage (and
-                      (= :centos (session/os-family session))
-                      (re-matches
-                       #"5\.[0-5]" (session/os-version session)))
-        options (if use-jpackage
-                  (assoc options
-                    :enable ["jpackage-generic" "jpackage-generic-updates"])
-                  options)]
+  ;; ([session & {:keys [user group version package service
+  ;;                    base-dir config-dir] :as options}]
+  ;;    (->
+  ;;     session
+  ;;     (thread-expr/apply-map-> settings (settings-map options))
+  ;;     install))
+  [session & {:keys [action] :or {action :install} :as options}]
+  (let [session (if (pos? (count (dissoc options :action)))
+                  (settings (settings-map options)))
+        settings (parameter/get-for-target session [:tomcat])
+        package (:package settings)
+        user (:owner settings)
+        group (:group settings)
+        base-dir (:base settings)
+        use-jpackage (:use-jpackage settings)
+        pkg-options (when use-jpackage
+                      {:enable
+                       ["jpackage-generic" "jpackage-generic-updates"]})]
     (-> session
         (thread-expr/when->
          use-jpackage
          (jpackage/add-jpackage :releasever "5.0")
          (jpackage/package-manager-update-jpackage)
          (jpackage/jpackage-utils))
-        (thread-expr/when-> (= :install (:action options :install))
-                (parameter/assoc-for-target
-                 [:tomcat :base] base-dir
-                 [:tomcat :config-path] config-dir
-                 [:tomcat :owner] user
-                 [:tomcat :group] group
-                 [:tomcat :service] service))
         (package/package-manager :update)
-        (thread-expr/apply->
-         package/package package
-         (apply concat options))
-        (thread-expr/when-> (:purge options)
-                (directory/directory
-                 tomcat-base :action :delete :recursive true :force true))
+        (thread-expr/apply-map-> package/package package pkg-options)
         (directory/directory ;; fix jpackage ownership of tomcat home
          (stevedore/script (user-home ~user))
          :owner user :group group :mode "0755")
@@ -265,6 +282,18 @@
       :remove (file/file
                session policy-file :action :delete
                :flag-on-changed tomcat-config-changed-flag))))
+
+(defn policies
+  "Configure tomcat policies."
+  [session]
+  (let [settings (parameter/get-for-target session [:tomcat])
+        tomcat-config-root (:config-path settings)
+        policies (:policies settings)]
+    (->
+     session
+     (thread-expr/for->
+      [policy-values policies]
+      (thread-expr/apply-> policy policy-values)))))
 
 (defn application-conf
   "Configure tomcat applications.
@@ -782,14 +811,23 @@
 
    When a tomcat configuration element is not specified, the relevant section of
    the template is output, unmodified."
-  [session server]
-  (let [base (parameter/get-for-target session [:tomcat :base])]
-    (->
-     session
-     (directory/directory
-      (str base "conf"))
-     (remote-file/remote-file
-      (str base "conf/server.xml")
-      :content (apply
-                str (tomcat-server-xml session server))
-      :flag-on-changed tomcat-config-changed-flag))))
+  ([session server]
+     (->
+      session
+      (parameter/assoc-for-target [:tomcat :server] server)
+      (server-configuration)))
+  ([session]
+     (let [base (parameter/get-for-target session [:tomcat :base])
+           server (parameter/get-for-target session [:tomcat :server])]
+       (->
+        session
+        (directory/directory (str base "conf"))
+        (remote-file/remote-file
+         (str base "conf/server.xml")
+         :content (apply str (tomcat-server-xml session server))
+         :flag-on-changed tomcat-config-changed-flag)))))
+
+(def
+  ^{:doc "Default settings map for tomcat configuration"}
+  default-settings-map
+  {:server (server)})

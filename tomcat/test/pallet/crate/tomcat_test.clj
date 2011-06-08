@@ -9,11 +9,11 @@
     [pallet.action.remote-file :as remote-file]
     [pallet.blobstore :as blobstore]
     [pallet.build-actions :as build-actions]
-    [pallet.action :as action]
     [pallet.compute :as compute]
     [pallet.core :as core]
     [pallet.crate.automated-admin-user :as automated-admin-user]
     [pallet.crate.java :as java]
+    [pallet.crate.network-service :as network-service]
     [pallet.crate.tomcat :as tc]
     [pallet.crate.tomcat :as tomcat]
     [pallet.enlive :as enlive]
@@ -21,6 +21,7 @@
     [pallet.parameter :as parameter]
     [pallet.parameter-test :as parameter-test]
     [pallet.phase :as phase]
+    [pallet.session :as session]
     [pallet.stevedore :as stevedore]
     [pallet.thread-expr :as thread-expr])
   (:use
@@ -47,6 +48,7 @@
          (first
           (build-actions/build-actions
            {}
+           (tomcat/settings {})
            (tomcat/install)
            (parameter-test/parameters-test
             [:host :id :tomcat :base] "/var/lib/tomcat6/"))))))
@@ -323,17 +325,19 @@
          (first
           (build-actions/build-actions
            {:parameters {:host {:id {:tomcat {:base "/var/lib/tomcat6/"}}}}}
-           (tomcat/server-configuration
-            (tomcat/server
-             :port "123" :shutdown "SHUTDOWNx"
-             (tomcat/listener :global-resources-lifecycle)
-             (tomcat/global-resources)
-             (tomcat/service
-              (tomcat/engine
-               "catalina" "host" (tomcat/valve :request-dumper))
-              (tomcat/connector
-               :port "80" :protocol "HTTP/1.1" :connectionTimeout "20000"
-               :redirectPort "8443"))))))))
+           (tomcat/settings
+            {:server (tomcat/server
+                      :port "123" :shutdown "SHUTDOWNx"
+                      (tomcat/listener :global-resources-lifecycle)
+                      (tomcat/global-resources)
+                      (tomcat/service
+                       (tomcat/engine
+                        "catalina" "host" (tomcat/valve :request-dumper))
+                       (tomcat/connector
+                        :port "80" :protocol "HTTP/1.1"
+                        :connectionTimeout "20000"
+                        :redirectPort "8443")))})
+           (tomcat/server-configuration)))))
   (is (= (first
           (build-actions/build-actions
            {}
@@ -345,16 +349,19 @@
          (first
           (build-actions/build-actions
            {:parameters {:host {:id {:tomcat {:base "/var/lib/tomcat6/"}}}}}
-           (tomcat/server-configuration
-            (tomcat/server)))))))
+           (tomcat/settings {:server (tomcat/server)})
+           (tomcat/server-configuration))))))
 
 (deftest invoke-test
   (is (build-actions/build-actions
        {:blobstore (blobstore/service "url-blobstore")
         :environment {:blobstore (blobstore/service "url-blobstore")}}
-       (tomcat/tomcat)
-       (tomcat/tomcat :version 6)
-       (tomcat/tomcat :version "tomcat-6-1.2")
+       (tomcat/settings {})
+       (tomcat/install)
+       (tomcat/settings {:version 6})
+       (tomcat/install)
+       (tomcat/settings {:version "tomcat-6-1.2"})
+       (tomcat/install)
        (tomcat/undeploy "app")
        (tomcat/undeploy-all)
        (tomcat/deploy "app" :content "")
@@ -362,10 +369,11 @@
        (tomcat/policy 1 "name" {})
        (tomcat/application-conf "name" "content")
        (tomcat/user "name" {:password "pwd"})
-       (tomcat/server-configuration (tomcat/server)))))
+       (tomcat/server-configuration (tomcat/server))
+       (tomcat/settings {:server (tomcat/server)})
+       (tomcat/server-configuration))))
 
-(def
-  ^{:doc "An html file for tomcat to server to verify we have it running."}
+(def ^{:doc "An html file for tomcat to server to verify we have it running."}
   index-html
   "<html>
 <head>
@@ -373,8 +381,10 @@
   <%@ page language=\"java\" %>
 </head>
 <body>
-<h3><%= java.net.InetAddress.getLocalHost().getHostAddress() %></h2>
-<h3><%= java.lang.System.getProperty(\"java.vendor\") %></h2>
+<h3><%= java.net.InetAddress.getLocalHost().getHostAddress() %></h3>
+<h3><%= java.lang.System.getProperty(\"java.vendor\") %></h3>
+<h3><%= java.lang.System.getProperty(\"java.runtime.name\") %></h3>
+<h3><%= java.lang.System.getProperty(\"java.vm.name\") %></h3>
 LIVE TEST
 </body></html>")
 
@@ -388,9 +398,15 @@ path=\"/pallet-live-test\"
 swallowOutput=\"true\">
 </Context>")
 
+(def settings-map (tomcat/settings-map {:version 6}))
+
+(def tomcat-6-unsupported
+  [{:os-family :debian :os-version-matches "5.0.7"}
+   {:os-family :debian :os-version-matches "5.0"}])
+
 (deftest live-test
   (live-test/test-for
-   [image live-test/*images*]
+   [image (live-test/exclude-images (live-test/images)  tomcat-6-unsupported)]
    (live-test/test-nodes
     [compute node-map node-types]
     {:tomcat
@@ -398,9 +414,10 @@ swallowOutput=\"true\">
       :count 1
       :phases {:bootstrap (phase/phase-fn
                            (automated-admin-user/automated-admin-user))
+               :settings (phase/phase-fn (tomcat/settings settings-map))
                :configure (phase/phase-fn
-                           (tomcat/install :version 6)
-                           (tomcat/server-configuration (server))
+                           (tomcat/install)
+                           (tomcat/server-configuration)
                            (tomcat/application-conf
                             "pallet-live-test" application-config)
                            (thread-expr/let-with-arg->
@@ -415,20 +432,23 @@ swallowOutput=\"true\">
                               :content index-html :literal true
                               :flag-on-changed
                               tomcat/tomcat-config-changed-flag))
-                            (tomcat/init-service
-                             :if-config-changed true :action :restart))
-                :verify (phase/phase-fn
-                         (exec-script/exec-checked-script
-                          "check tomcat is running"
-                          (pipe
-                           (wget
-                            "-O-" "http://localhost:8080/pallet-live-test/")
-                           (grep (quoted "LIVE TEST")))))}}}
-     (core/lift (:tomcat node-types) :phase :verify :compute compute))))
+                           (tomcat/init-service
+                            :if-config-changed true :action :restart))
+               :verify (phase/phase-fn
+                        (network-service/wait-for-http-status
+                         "http://localhost:8080/pallet-live-test/"
+                         200 :url-name "tomcat server")
+                        (exec-script/exec-checked-script
+                         "check tomcat is running with openjdk"
+                         (pipe
+                          (wget
+                           "-O-" "http://localhost:8080/pallet-live-test/")
+                          (grep -i (quoted "openjdk")))))}}}
+    (core/lift (:tomcat node-types) :phase :verify :compute compute))))
 
 (deftest live-sun-jdk-test
   (live-test/test-for
-   [image live-test/*images*]
+   [image (live-test/exclude-images (live-test/images)  tomcat-6-unsupported)]
    (live-test/test-nodes
     [compute node-map node-types]
     {:tomcatsun
@@ -436,19 +456,27 @@ swallowOutput=\"true\">
       :count 1
       :phases {:bootstrap (phase/phase-fn
                            (automated-admin-user/automated-admin-user))
+               :settings (phase/phase-fn (tomcat/settings settings-map))
                :configure (fn [request]
                             (->
                              request
-                             (tomcat/install :version 6)
-                             (remote-file/remote-file
-                              "jdk.bin"
-                              :local-file
-                              (if (compute/is-64bit? (:target-node request))
-                                "artifacts/jdk-6u23-linux-x64-rpm.bin"
-                                "artifacts/jdk-6u24-linux-i586-rpm.bin")
-                              :mode "755")
-                             (java/java :sun :jdk :rpm-bin "./jdk.bin")
-                             (tomcat/server-configuration (server))
+                             (tomcat/install)
+                             (tomcat/server-configuration)
+                             (thread-expr/when->
+                              (#{:centos :rhel :fedora}
+                               (session/os-family request))
+                              (remote-file/remote-file
+                               "jdk.bin"
+                               :local-file
+                               (if (compute/is-64bit? (:target-node request))
+                                 "artifacts/jdk-6u23-linux-x64-rpm.bin"
+                                 "artifacts/jdk-6u24-linux-i586-rpm.bin")
+                               :mode "755")
+                              (java/java :sun :jdk :rpm-bin "./jdk.bin"))
+                             (thread-expr/when->
+                              (not (#{:centos :rhel :fedora}
+                                    (session/os-family request)))
+                              (java/java :sun :jdk))
                              (tomcat/application-conf
                               "pallet-live-test" application-config)
                              (thread-expr/let-with-arg->
@@ -466,8 +494,11 @@ swallowOutput=\"true\">
                              (tomcat/init-service
                               :if-config-changed true :action :restart)))
                :verify (phase/phase-fn
+                        (network-service/wait-for-http-status
+                         "http://localhost:8080/pallet-live-test/"
+                         200 :url-name "tomcat server")
                         (exec-script/exec-checked-script
-                         "check tomcat is running"
+                         "check tomcat is running with sun jdk"
                          (pipe
                           (wget "-O-" "http://localhost:8080/pallet-live-test/")
                           (grep -i (quoted "sun")))))}}}
