@@ -128,7 +128,7 @@
     <dependency>
       <groupId>vmfest</groupId>
       <artifactId>vmfest</artifactId>
-      <version>0.2.2</version>
+      <version>0.2.3-SNAPSHOT</version>
       <optional>true</optional>
       <scope>test</scope>
     </dependency>
@@ -485,7 +485,7 @@
   </repositories>
 
   <properties>
-    <pallet.version>0.5.1-SNAPSHOT</pallet.version>
-    <jclouds.version>1.0-beta-9c</jclouds.version>
+    <pallet.version>0.6.1-SNAPSHOT</pallet.version>
+    <jclouds.version>1.0.0</jclouds.version>
   </properties>
 </project>
