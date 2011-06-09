@@ -152,10 +152,15 @@
       (~lib/sed-file
        ~init-script
        ~(str
-         "i \\\\\n"
-         "[ -d ${PIDDIR} ] "
-         "|| { mkdir -p ${PIDDIR} && chown ${RUN_AS_USER}:${RUN_AS_USER} ; }")
-       {:restriction "/Do not modify/"}))
+         "i \\\n"
+         (stevedore/script
+          (chain-or
+           (test (directory? @PIDDIR))
+           ("{ " (chain-and
+                  (mkdir -p @PIDDIR)
+                  (chown (str @RUN_AS_USER ":" @RUN_AS_USER) @PIDDIR))
+            " ; }"))))
+       {:restriction "/Do not modify/" :quote-with "'"}))
      (service/init-script
       (:service-name settings)
       :remote-file init-script
