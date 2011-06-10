@@ -52,8 +52,8 @@
       [:zookeeper :home] home
       [:zookeeper :owner] user
       [:zookeeper :group] group)
-     (user/user user :system true)
      (user/group group :system true)
+     (user/user user :system true :group group)
      (remote-directory/remote-directory
       home
       :url url :md5-url (str url ".md5")
