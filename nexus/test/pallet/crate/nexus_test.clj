@@ -20,7 +20,7 @@
    (logging/trace (format "nexus live test: image %s" (pr-str image)))
    (live-test/test-nodes
     [compute node-map node-types]
-    {:pgtest
+    {:nexustest
      (->
       (core/server-spec
        :phases {:bootstrap (phase/phase-fn
@@ -36,9 +36,11 @@
                             (nexus/service :action :enable)
                             (nexus/service :action :start))
                 :verify (phase/phase-fn
+                         (network-service/wait-for-port-listen
+                          8081 :service-name "nexus port" :max-retries 10)
                          (network-service/wait-for-http-status
                           "http://localhost:8081/nexus"
-                          200 :url-name "nexus server")
+                          200 :url-name "nexus server" :max-retries 10)
                          (exec-script/exec-checked-script
                           "check nexus functional"))}
        :count 1
