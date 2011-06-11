@@ -145,7 +145,8 @@
   ;;     install))
   [session & {:keys [action] :or {action :install} :as options}]
   (let [session (if (pos? (count (dissoc options :action)))
-                  (settings (settings-map options)))
+                  (settings session (settings-map options))
+                  session)
         settings (parameter/get-for-target session [:tomcat])
         package (:package settings)
         user (:owner settings)
