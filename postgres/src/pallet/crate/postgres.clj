@@ -165,7 +165,7 @@
                   settings-map)]
     (parameter/assoc-for-target
      session
-     [:settings :postgresql]
+     [:postgresql]
      (assoc (select-keys settings non-options-in-settings)
        :options (apply dissoc settings non-options-in-settings)))))
 
@@ -174,7 +174,7 @@
    (e.g. \"9.0\")."
   ([session]
      (let [os-family (session/os-family session)
-           settings (parameter/get-for-target session [:settings :postgresql])
+           settings (parameter/get-for-target session [:postgresql])
            packages (:packages settings)
            package-source (:package-source settings)
            version (:version settings)]
@@ -220,7 +220,7 @@
       (settings
        (merge
         default-settings-map
-        (parameter/get-for-target session [:settings :postgresql] nil)
+        (parameter/get-for-target session [:postgresql] nil)
         {:version version}))
       (postgres))))
 
@@ -337,7 +337,7 @@
    :conf-path   - A format string for the full file path, with a %s for the
                   version."
   [session & {:keys [records conf-path]}]
-  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
+  (let [settings (parameter/get-for-target session [:postgresql] {})
         version (:version settings)
         records (or records (:permissions settings) [])
         conf-path (or
@@ -401,7 +401,7 @@
    :conf-path   - A format string for the file path, with a %s for
                   the version."
   [session & {:keys [options conf-path]}]
-  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
+  (let [settings (parameter/get-for-target session [:postgresql] {})
         version (:version settings)
         conf-path (or
                    conf-path
@@ -418,7 +418,7 @@
 (defn initdb
   "Initialise a db"
   [session]
-  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
+  (let [settings (parameter/get-for-target session [:postgresql] {})
         initdb-via (:initdb-via settings :initdb)
         data-dir (-> settings :options :data_directory)]
     (case initdb-via
@@ -450,7 +450,7 @@
                                user. Default: postgres
      :ignore-result          - Ignore any error return value out of psql."
   [session & {:keys [as-user ignore-result] :as options}]
-  (let [settings (parameter/get-for-target session [:settings :postgresql] {})
+  (let [settings (parameter/get-for-target session [:postgresql] {})
         as-user (or as-user (-> settings :owner))
         file (str (gensym "postgresql") ".sql")]
     (-> session
@@ -537,7 +537,7 @@
    name is looked up in the request parameters."
   [session & {:keys [action if-config-changed if-flag] :as options}]
   (let [service (parameter/get-for-target
-                 session [:settings :postgresql :service])
+                 session [:postgresql :service])
         options (if if-config-changed
                   (assoc options :if-flag postgresql-config-changed-flag)
                   options)]
