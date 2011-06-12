@@ -91,7 +91,7 @@
             <groupId>com.theoryinpractise</groupId>
             <artifactId>clojure-maven-plugin</artifactId>
             <configuration>
-              <clojureOptions>-Dpallet.test.live=true -Dpallet.test.service-name=${pallet.test.service-name} -Dpallet.test.cleanup-nodes=${pallet.test.cleanup-nodes} -Dpallet.test.image-list=${pallet.test.image-list} -Dpallet.test.parallel=${pallet.test.parallel}</clojureOptions>
+              <clojureOptions>-Dpallet.test.live=true -Dpallet.test.service-name=${pallet.test.service-name} -Dpallet.test.cleanup-nodes=${pallet.test.cleanup-nodes} -Dpallet.test.image-list=${pallet.test.image-list} -Dpallet.test.parallel=${pallet.test.parallel} -Dpallet.test.session-type=${pallet.test.session-type}</clojureOptions>
             </configuration>
           </plugin>
         </plugins>
@@ -101,6 +101,7 @@
         <pallet.test.cleanup-nodes>true</pallet.test.cleanup-nodes>
         <pallet.test.parallel>false</pallet.test.parallel>
         <pallet.test.image-list />
+        <pallet.test.session-type />
       </properties>
     </profile>
   </profiles>
@@ -467,9 +468,11 @@
       </plugin>
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.0</version>
+        <version>2.1</version>
         <configuration>
-          <pushChanges>false</pushChanges>
+          <!-- Would like to invert this -->
+          <pushChanges>true</pushChanges>
+          <localCheckout>false</localCheckout>
         </configuration>
       </plugin>
     </plugins>
@@ -484,7 +487,7 @@
   </repositories>
 
   <properties>
-    <pallet.version>0.5.0</pallet.version>
+    <pallet.version>0.5.1-SNAPSHOT</pallet.version>
     <jclouds.version>1.0-beta-9c</jclouds.version>
   </properties>
 </project>

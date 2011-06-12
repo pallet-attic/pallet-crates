@@ -15,5 +15,25 @@
       <groupId>org.cloudhoist</groupId>
       <artifactId>iptables</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>maven</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>git</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>automated-admin-user</artifactId>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>java</artifactId>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

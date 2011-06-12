@@ -52,12 +52,13 @@
                          (exec-script/exec-checked-script
                           "check zookeeper"
                           (println "zookeeper ruok")
-                          (pipe (println "ruok") ("nc" "localhost" 2181))
+                          (pipe (println "ruok") ("nc" -q 2 "localhost" 2181))
                           (println "zookeeper stat ")
-                          (pipe (println "stat") ("nc" "localhost" 2181))
+                          (pipe (println "stat") ("nc" -q 2 "localhost" 2181))
                           (println "zookeeper dump ")
-                          (pipe (println "dump") ("nc" "localhost" 2181))
+                          (pipe (println "dump") ("nc" -q 2 "localhost" 2181))
+                          (println "zookeeper imok ")
                           (test (= "imok"
                                    @(pipe (println "ruok")
-                                          ("nc" "localhost" 2181))))))}}}
+                                          ("nc" -q 2 "localhost" 2181))))))}}}
      (core/lift (:zookeeper node-types) :phase :verify :compute compute))))

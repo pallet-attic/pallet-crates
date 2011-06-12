@@ -4,6 +4,15 @@ The latest stable release is 0.4.4.
 
 The latest development release is 0.5.0.
 
+* Zookeeper 0.5.1
+** Changes
+- Set the zookeeper user's goup explicitly
+
+- Wait for zookeeper response in live-test
+
+- Fix download URL for zookeeper and bump version to one that can be
+  downloaded
+
 * 0.5.0
 ** Install
 

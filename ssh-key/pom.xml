@@ -22,6 +22,7 @@
     <profile>
       <id>live-test</id>
       <dependencies>
+        <!-- Specified like this, to prevent cyclical dependency -->
         <dependency>
           <groupId>org.cloudhoist</groupId>
           <artifactId>automated-admin-user</artifactId>

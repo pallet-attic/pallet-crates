@@ -231,7 +231,7 @@
 
 (defn check-public-key
   [request]
-  (logging/info (format "check-public-key request is %s" request))
+  (logging/trace (format "check-public-key request is %s" request))
   (is (string?
        (parameter/get-for-target request [:user :testuser :id_rsa])))
   request)
@@ -239,9 +239,11 @@
 (deftest live-test
   (live-test/test-for
    [image live-test/*images*]
+   ;; required dynamically, to prevent cyclical dependency
    (require '[pallet.crate.automated-admin-user :as automated-admin-user])
-   (let [automated-admin-user (var-get
-                               (resolve 'pallet.crate.automated-admin-user))]
+   (let [automated-admin-user
+         (var-get
+          (resolve 'pallet.crate.automated-admin-user/automated-admin-user))]
      (live-test/test-nodes
       [compute node-map node-types]
       {:ssh-key

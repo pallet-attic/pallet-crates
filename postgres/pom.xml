@@ -9,4 +9,13 @@
   </parent>
   <artifactId>postgres</artifactId>
   <version>0.5.1-SNAPSHOT</version>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>automated-admin-user</artifactId>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>
