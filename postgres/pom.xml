@@ -8,7 +8,7 @@
     <relativePath>..</relativePath>
   </parent>
   <artifactId>postgres</artifactId>
-  <version>0.5.1-SNAPSHOT</version>
+  <version>0.6.1-SNAPSHOT</version>
 
   <scm>
     <connection>scm:git:git://github.com/pallet/pallet-crates.git</connection>

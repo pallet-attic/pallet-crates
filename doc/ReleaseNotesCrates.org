@@ -4,6 +4,16 @@ The latest stable release is 0.4.4.
 
 The latest development release is 0.5.0.
 
+* Postgres 0.6.0
+** Changes
+- Remove :settings from postgres parameters key
+
+- Allow sql script from multiple sources
+  Script can now be supplied by any mechanism supported by remote-file
+
+- Update postgres crate to use settings
+  Also added support for postgres 9.0 on debian, and redhat based distros.
+
 * Zeromq 0.5.1
 ** Changes
 - Add default jzmq version and fix live test
