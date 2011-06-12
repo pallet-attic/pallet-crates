@@ -4,6 +4,15 @@ The latest stable release is 0.4.4.
 
 The latest development release is 0.5.0.
 
+* Tomcat 0.6.0
+** Changes
+- Update tomcat for separate settings-map
+
+- Add a settings phase for the Tomcat crate.
+  Adding new function settings to load the session with the values that
+  install normally does. Install function now calls settings at the
+  beginning to load the settings. Tests pass.
+
 * Postgres 0.6.0
 ** Changes
 - Remove :settings from postgres parameters key
