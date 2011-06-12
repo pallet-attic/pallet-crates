@@ -4,6 +4,14 @@ The latest stable release is 0.4.4.
 
 The latest development release is 0.5.0.
 
+* Ssh-key 0.5.1
+** Changes
+- Revert removal of automated-admin-user as a dynamic dependency
+  In order not to have cyclical depenedencies, ssh-key can not depend
+  statically on automated-admin-user
+
+- Fix ssh-key/record-public-key
+
 * Java 0.5.1
 ** Changes
 - Set JAVA_HOME when installing java
