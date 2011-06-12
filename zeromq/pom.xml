@@ -8,7 +8,13 @@
     <relativePath>..</relativePath>
   </parent>
   <artifactId>zeromq</artifactId>
-  <version>0.5.1-SNAPSHOT</version>
+  <version>0.5.2-SNAPSHOT</version>
+
+  <scm>
+    <connection>scm:git:git://github.com/pallet/pallet-crates.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/pallet/pallet-crates.git</developerConnection>
+    <url>https://github.com/pallet/pallet-crates</url>
+  </scm>
 
   <dependencies>
     <dependency>
