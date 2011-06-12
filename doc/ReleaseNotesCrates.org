@@ -4,6 +4,16 @@ The latest stable release is 0.4.4.
 
 The latest development release is 0.5.0.
 
+* Java 0.5.1
+** Changes
+- Set JAVA_HOME when installing java
+
+- Fix java crate for non x86 arch on rh derivatives
+
+- Update Java crate to work with fedora
+  Redhat 5.5 based distros will now do a rebuild of the jpackage source rpm
+  for sun-java-compat.
+
 * Zookeeper 0.5.1
 ** Changes
 - Set the zookeeper user's goup explicitly
