@@ -4,6 +4,17 @@ The latest stable release is 0.4.4.
 
 The latest development release is 0.5.0.
 
+* Zeromq 0.5.1
+** Changes
+- Add default jzmq version and fix live test
+
+- The download path for zeromq has changed, and the latest stable version is
+  2.1.7
+
+- Update zeromq dependencies and add live-test
+
+- adds java bindings for zeromq. fixes zeromq install bugs
+
 * Ssh-key 0.5.1
 ** Changes
 - Revert removal of automated-admin-user as a dynamic dependency
