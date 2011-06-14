@@ -16,8 +16,10 @@
   (is ; just check for compile errors for now
    (build-actions/build-actions
     {}
-    (postgres/postgres "8.0")
-    (postgres/postgres "9.0")
+    (postgres/settings (postgres/settings-map {:version "8.0"}))
+    (postgres/postgres)
+    (postgres/settings (postgres/settings-map {:version "9.0"}))
+    (postgres/postgres)
     (postgres/hba-conf :records [])
     (postgres/postgresql-script :content "some script")
     (postgres/create-database "db")

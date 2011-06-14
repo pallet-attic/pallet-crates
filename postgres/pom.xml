@@ -19,6 +19,18 @@
   <dependencies>
     <dependency>
       <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet</artifactId>
+      <version>0.6.2-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet</artifactId>
+      <version>0.6.2-SNAPSHOT</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
       <artifactId>automated-admin-user</artifactId>
       <optional>true</optional>
       <scope>test</scope>

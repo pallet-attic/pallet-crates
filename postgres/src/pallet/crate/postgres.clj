@@ -29,7 +29,8 @@
    :components #{:server :contrib}
    :port 5432
    :max_connections 100
-   :ssl true
+   :ssl false
+   :owner "postgres"
    :shared_buffers "24MB"
    :log_line_prefix "%t "
    :datestyle "iso, ymd"
@@ -72,8 +73,6 @@
   {:service "postgresql"
    :owner "postgres"
    :external_pid_file (str (stevedore/script (~lib/pid-root)) "/postgresql.pid")
-   :unix_socket_directory (str (stevedore/script (~lib/pid-root))
-                               "/postgresql")
    :initdb-via :service})
 
 (defmethod default-settings [:debian :native]
@@ -83,6 +82,7 @@
      (base-settings session)
      {:packages ["postgresql"]
       :data_directory (format "/var/lib/postgresql/%s/main" version)
+      :wal_directory (format "/var/lib/postgresql/%s/archive" version)
       :postgresql_file (format
                         "/etc/postgresql/%s/main/postgresql.conf" version)
       :hba_file (format "/etc/postgresql/%s/main/pg_hba.conf" version)
@@ -98,12 +98,12 @@
      {:packages (map
                  #(str "postgresql-" (name %))
                  (:components settings #{:server :libs}))
-      :data_directory (format "/var/lib/pgsql/%s/" version)
-      :postgresql_file (format "/var/lib/pgsql/%s/postgresql.conf" version)
-      :hba_file (format "/var/lib/pgsql/%s/pg_hba.conf" version)
-      :ident_file (format "/var/lib/pgsql/%s/pg_ident.conf" version)
-      :external_pid_file (format "/var/run/pgsql/%s.pid" version)
-      :unix_socket_directory "/var/run/pgsql"})))
+      :data_directory (format "/var/lib/pgsql/%s/data" version)
+      :wal_directory (format "/var/lib/pgsql/%s/archive" version)
+      :postgresql_file (format "/var/lib/pgsql/%s/data/postgresql.conf" version)
+      :hba_file (format "/var/lib/pgsql/%s/data/pg_hba.conf" version)
+      :ident_file (format "/var/lib/pgsql/%s/data/pg_ident.conf" version)
+      :external_pid_file (format "/var/run/pgsql-%s.pid" version)})))
 
 (defmethod default-settings [:rh :pgdg]
   [session os-family package-source settings]
@@ -115,11 +115,12 @@
                  #(str "postgresql" (string/replace version "." "")
                        "-" (name %))
                  (:components settings))
-      :data_directory (format "/var/lib/pgsql/%s" version)
-      :postgresql_file (format "/var/lib/pgsql/%s/postgresql.conf" version)
-      :hba_file (format "/var/lib/pgsql/%s/pg_hba.conf" version)
-      :ident_file (format "/var/lib/pgsql/%s/pg_ident.conf" version)
-      :external_pid_file (format "/var/run/pgsql/%s.pid" version)
+      :data_directory (format "/var/lib/pgsql/%s/data" version)
+      :wal_directory (format "/var/lib/pgsql/%s/archive" version)
+      :postgresql_file (format "/var/lib/pgsql/%s/data/postgresql.conf" version)
+      :hba_file (format "/var/lib/pgsql/%s/data/pg_hba.conf" version)
+      :ident_file (format "/var/lib/pgsql/%s/data/pg_ident.conf" version)
+      :external_pid_file (format "/var/run/pgsql-%s.pid" version)
       :service (str "postgresql-" version)})))
 
 (defmethod default-settings [:arch :native]
@@ -130,6 +131,7 @@
      {:components []
       :packages ["postgresql"]
       :data_directory "/var/lib/postgres/data/"
+      :wal_directory "/var/lib/postgres/archive/"
       :postgresql_file  "/var/lib/postgres/data/postgresql.conf"
       :hba_file  "/var/lib/postgres/data/pg_hba.conf"
       :ident_file "/var/lib/postgres/data/pg_ident.conf"
@@ -148,11 +150,11 @@
 
 (def non-options-in-settings
   #{:components :version :permissions :initdb-via :package-source :packages
-    :service :owner})
+    :service :owner :recovery :wal_directory :postgresql_file})
 
 (defn settings
   "Build a settings for postgresql"
-  [session settings-map]
+  [session settings-map & {:keys [instance]}]
   (let [os-family (session/os-family session)
         os-base (session/base-distribution session)
         components (:components settings-map)
@@ -163,66 +165,56 @@
                     session os-base package-source settings-map)
                   {:package-source package-source}
                   settings-map)]
-    (parameter/assoc-for-target
+    (parameter/assoc-target-settings
      session
-     [:postgresql]
+     :postgresql instance
      (assoc (select-keys settings non-options-in-settings)
        :options (apply dissoc settings non-options-in-settings)))))
 
 (defn postgres
   "Version should be a string identifying the major.minor version number desired
    (e.g. \"9.0\")."
-  ([session]
-     (let [os-family (session/os-family session)
-           settings (parameter/get-for-target session [:postgresql])
-           packages (:packages settings)
-           package-source (:package-source settings)
-           version (:version settings)]
-       (logging/info
-        (format "postgresql %s from %s packages [%s]"
-                version (name package-source) (string/join ", " packages)))
-       (->
-        session
-        (when-> (= package-source :martin-pitt-backports)
-                (package/package-source
-                 "Martin Pitt backports"
-                 :aptitude {:url "ppa:pitti/postgresql"})
-                (package/package-manager :update))
-        (when-> (= package-source :debian-backports)
-                (debian-backports/add-debian-backports)
-                (package/package-manager :update)
-                (package/package
-                 "libpq5"
-                 :enable (str
-                          (stevedore/script (~lib/os-version-name))
-                          "-backports")))
-        (when->
-         (= package-source :pgdg)
-         (action/with-precedence {:action-id ::add-pgdg-rpm
-                                  :always-before `package/package}
-           (package/add-rpm
-            "pgdg.rpm"
-            :url (format
-                  "http://yum.pgrpms.org/reporpms/%s/pgdg-%s-%s.noarch.rpm"
-                  version (name os-family) (pgdg-repo-versions version))))
-         (action/with-precedence {:action-id ::pgdg-update
-                                  :always-before `package/package
-                                  :always-after ::add-pgdg-rpm}
-           (package/package-manager :update)))
-        ;; install packages
-        (arg-> [session]
-               (for-> [package (:packages settings)]
-                      (package/package package))))))
-  ;; this is to preserve API compatibility
-  ([session version]
-     (->
-      session
-      (settings
-       (merge
-        default-settings-map
-        (parameter/get-for-target session [:postgresql] nil)
-        {:version version}))
-      (postgres))))
+  [session & {:keys [instance]}]
+  (let [os-family (session/os-family session)
+        settings (parameter/get-target-settings session :postgresql instance)
+        packages (:packages settings)
+        package-source (:package-source settings)
+        version (:version settings)]
+    (logging/info
+     (format "postgresql %s from %s packages [%s]"
+             version (name package-source) (string/join ", " packages)))
+    (->
+     session
+     (when-> (= package-source :martin-pitt-backports)
+             (package/package-source
+              "Martin Pitt backports"
+              :aptitude {:url "ppa:pitti/postgresql"})
+             (package/package-manager :update))
+     (when-> (= package-source :debian-backports)
+             (debian-backports/add-debian-backports)
+             (package/package-manager :update)
+             (package/package
+              "libpq5"
+              :enable (str
+                       (stevedore/script (~lib/os-version-name))
+                       "-backports")))
+     (when->
+      (= package-source :pgdg)
+      (action/with-precedence {:action-id ::add-pgdg-rpm
+                               :always-before `package/package}
+        (package/add-rpm
+         "pgdg.rpm"
+         :url (format
+               "http://yum.pgrpms.org/reporpms/%s/pgdg-%s-%s.noarch.rpm"
+               version (name os-family) (pgdg-repo-versions version))))
+      (action/with-precedence {:action-id ::pgdg-update
+                               :always-before `package/package
+                               :always-after ::add-pgdg-rpm}
+        (package/package-manager :update)))
+     ;; install packages
+     (arg-> [session]
+            (for-> [package (:packages settings)]
+                   (package/package package))))))
 
 
 (def ^{:private true} pallet-cfg-preamble
@@ -336,8 +328,8 @@
                   keywords/strings).
    :conf-path   - A format string for the full file path, with a %s for the
                   version."
-  [session & {:keys [records conf-path]}]
-  (let [settings (parameter/get-for-target session [:postgresql] {})
+  [session & {:keys [records conf-path instance]}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)
         version (:version settings)
         records (or records (:permissions settings) [])
         conf-path (or
@@ -400,14 +392,34 @@
                   such).
    :conf-path   - A format string for the file path, with a %s for
                   the version."
-  [session & {:keys [options conf-path]}]
-  (let [settings (parameter/get-for-target session [:postgresql] {})
+  [session & {:keys [options conf-path instance]}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)
         version (:version settings)
         conf-path (or
                    conf-path
                    (when-let [d conf-path] (format d version))
-                   (-> settings :options :postgresql_file))
+                   (-> settings :postgresql_file))
         options (or options (:options settings))
+        contents (apply str pallet-cfg-preamble (map format-parameter options))]
+    (remote-file/remote-file
+     session conf-path :content contents :literal true :owner (:owner settings)
+     :flag-on-changed postgresql-config-changed-flag)))
+
+(defn recovery-conf
+  "Generates a recovery.conf file from the arguments.
+
+   Options:
+   :options     - A map of parameters (string(able)s, numbers, or vectors of
+                  such).
+   :conf-path   - A format string for the file path, with a %s for
+                  the version."
+  [session & {:keys [options conf-path instance]}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)
+        version (:version settings)
+        conf-path (format
+                   "%s/recovery.conf"
+                   (-> settings :options :data_directory))
+        options (or options (:recovery settings))
         contents (apply str pallet-cfg-preamble (map format-parameter options))]
     (remote-file/remote-file
      session conf-path :content contents :literal true :owner (:owner settings)
@@ -417,8 +429,8 @@
 
 (defn initdb
   "Initialise a db"
-  [session]
-  (let [settings (parameter/get-for-target session [:postgresql] {})
+  [session & {:keys [instance]}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)
         initdb-via (:initdb-via settings :initdb)
         data-dir (-> settings :options :data_directory)]
     (case initdb-via
@@ -449,23 +461,28 @@
      :as-user username       - Run this script having sudoed to this (system)
                                user. Default: postgres
      :ignore-result          - Ignore any error return value out of psql."
-  [session & {:keys [as-user ignore-result] :as options}]
-  (let [settings (parameter/get-for-target session [:postgresql] {})
+  [session & {:keys [as-user ignore-result instance show-stdout] :as options}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)
         as-user (or as-user (-> settings :owner))
-        file (str (gensym "postgresql") ".sql")]
+        file (str (stevedore/script @TMPDIR:-/tmp) "/"
+                  (gensym "postgresql") ".sql")]
     (-> session
         (apply-map->
          remote-file/remote-file
          file
          :no-versioning true
+         :ownder as-user
          (select-keys options remote-file/content-options))
         (exec-script/exec-script
          ;; Note that we stuff all output. This is because certain commands in
          ;; PostgreSQL are idempotent but spit out an error and an error exit
          ;; anyways (eg, create database on a database that already exists does
          ;; nothing, but is counted as an error).
-         ("{\n" sudo "-u" ~as-user psql "-f" ~file > "/dev/null" "2>&1"
-          ~(when ignore-result "|| true") "\n}"))
+         ("{\n"
+          sudo "-u" ~as-user psql "-f" ~file
+          ~(if show-stdout "" ">/dev/null")
+          "2>&1"
+          ~(if ignore-result "|| true" "") "\n}"))
         (remote-file/remote-file file :action :delete))))
 
 (defn create-database
@@ -535,9 +552,9 @@
 
    Other options are as for `pallet.action.service/service`. The service
    name is looked up in the request parameters."
-  [session & {:keys [action if-config-changed if-flag] :as options}]
-  (let [service (parameter/get-for-target
-                 session [:postgresql :service])
+  [session & {:keys [action if-config-changed if-flag instance] :as options}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)
+        service (:service settings)
         options (if if-config-changed
                   (assoc options :if-flag postgresql-config-changed-flag)
                   options)]
