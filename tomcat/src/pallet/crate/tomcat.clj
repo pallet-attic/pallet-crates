@@ -87,9 +87,10 @@
   (merge default-settings-map options))
 
 (defn settings
-  "Calculates and attaches the settings to the request object, for later use."
+  "Calculates and attaches the settings to the request object, for later use.
+    :instance  an id used to discriminate between multiple installs."
   [session {:keys [user group version package service base-dir config-dir
-                   use-jpackage server]
+                   use-jpackage server instance]
             :as settings-map}]
   (let [package (or package
                     (version-package version version)
@@ -108,8 +109,8 @@
                          #"5\.[0-5]" (session/os-version session)))
                        use-jpackage)]
     (-> session
-        (parameter/assoc-for-target
-         [:tomcat]
+        (parameter/assoc-target-settings
+         :tomcat instance
          (merge
           settings-map
           {:package package
@@ -143,11 +144,11 @@
   ;;     session
   ;;     (thread-expr/apply-map-> settings (settings-map options))
   ;;     install))
-  [session & {:keys [action] :or {action :install} :as options}]
+  [session & {:keys [action instance] :or {action :install} :as options}]
   (let [session (if (pos? (count (dissoc options :action)))
                   (settings session (settings-map options))
                   session)
-        settings (parameter/get-for-target session [:tomcat])
+        settings (parameter/get-target-settings session :tomcat instance)
         package (:package settings)
         user (:owner settings)
         group (:group settings)
@@ -187,30 +188,32 @@
 
    Other options are as for `pallet.action.service/service`. The service
    name is looked up in the request parameters."
-  [session & {:keys [action if-config-changed if-flag] :as options}]
-  (let [service (parameter/get-for-target session [:tomcat :service])
+  [session & {:keys [action if-config-changed if-flag instance] :as options}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
+        service (:service settings)
         options (if if-config-changed
                   (assoc options :if-flag tomcat-config-changed-flag)
                   options)]
     (-> session (thread-expr/apply-map-> service/service service options))))
 
 (defn undeploy
-  "Removes the named webapp directories, and any war files with the same base
-   names."
-  [session & app-names]
-  (let [tomcat-base (parameter/get-for-target session [:tomcat :base])]
+  "Removes the named webapp directory, and any war files with the same base
+   name."
+  [session app-name & {:keys [instance]}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
+        tomcat-base (:base settings)
+        app-name (or app-name "ROOT")
+        app-name (if (string? app-name) app-name (name app-name))
+        exploded-app-dir (str tomcat-base "webapps/" app-name)]
     (-> session
-        (thread-expr/for-> [app-name app-names
-                :let [app-name (or app-name "ROOT")
-                      app-name (if (string? app-name) app-name (name app-name))
-                      exploded-app-dir (str tomcat-base "webapps/" app-name)]]
-               (directory/directory exploded-app-dir :action :delete)
-               (file/file (str exploded-app-dir ".war") :action :delete)))))
+        (directory/directory exploded-app-dir :action :delete)
+        (file/file (str exploded-app-dir ".war") :action :delete))))
 
 (defn undeploy-all
   "Removes all deployed war file and exploded webapp directories."
-  [session]
-  (let [tomcat-base (parameter/get-for-target session [:tomcat :base])]
+  [session & {:keys [instance]}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
+        tomcat-base (:base settings)]
     (exec-script/exec-script
      session
      (~lib/rm ~(str tomcat-base "webapps/*") :r true :f true))))
@@ -223,10 +226,11 @@
 
    Other Options:
      :clear-existing true -- removes the existing exploded ${app-name} directory"
-  [session app-name & {:as opts}]
-  (let [tomcat-base (parameter/get-for-target session [:tomcat :base])
-        tomcat-user (parameter/get-for-target session [:tomcat :owner])
-        tomcat-group (parameter/get-for-target session [:tomcat :group])
+  [session app-name & {:keys [instance] :as opts}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
+        tomcat-base (:base settings)
+        tomcat-user (:owner settings)
+        tomcat-group (:group settings)
         exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")
         options (merge
@@ -266,9 +270,9 @@
      name - a name for the policy
      grants - a map from codebase to sequence of permissions"
   [session number name grants
-   & {:keys [action] :or {action :create} :as options}]
-  (let [tomcat-config-root (parameter/get-for-target
-                            session [:tomcat :config-path])
+   & {:keys [action instance] :or {action :create} :as options}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
+        tomcat-config-root (:config-path settings)
         policy-file (str tomcat-config-root "policy.d/" number name ".policy")]
     (case action
       :create (->
@@ -286,23 +290,24 @@
 
 (defn policies
   "Configure tomcat policies."
-  [session]
-  (let [settings (parameter/get-for-target session [:tomcat])
+  [session & {:keys [instance] :as options}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
         tomcat-config-root (:config-path settings)
         policies (:policies settings)]
     (->
      session
      (thread-expr/for->
-      [policy-values policies]
-      (thread-expr/apply-> policy policy-values)))))
+      [[number name grants] policies]
+      (thread-expr/apply-map-> policy number name grants options)))))
 
 (defn application-conf
   "Configure tomcat applications.
    name - a name for the policy
    content - an xml application context"
-  [session name content & {:keys [action] :or {action :create} :as options}]
-  (let [tomcat-config-root (parameter/get-for-target
-                            session [:tomcat :config-path])
+  [session name content
+   & {:keys [action instance] :or {action :create} :as options}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
+        tomcat-config-root (:config-path settings)
         app-path (str tomcat-config-root "Catalina/localhost/")
         app-file (str app-path name ".xml")]
     (case action
@@ -812,21 +817,17 @@
 
    When a tomcat configuration element is not specified, the relevant section of
    the template is output, unmodified."
-  ([session server]
-     (->
-      session
-      (parameter/assoc-for-target [:tomcat :server] server)
-      (server-configuration)))
-  ([session]
-     (let [base (parameter/get-for-target session [:tomcat :base])
-           server (parameter/get-for-target session [:tomcat :server])]
-       (->
-        session
-        (directory/directory (str base "conf"))
-        (remote-file/remote-file
-         (str base "conf/server.xml")
-         :content (apply str (tomcat-server-xml session server))
-         :flag-on-changed tomcat-config-changed-flag)))))
+  [session & {:keys [instance]}]
+  (let [settings (parameter/get-target-settings session :tomcat instance)
+        base (:base settings)
+        server (:server settings)]
+    (->
+     session
+     (directory/directory (str base "conf"))
+     (remote-file/remote-file
+      (str base "conf/server.xml")
+      :content (apply str (tomcat-server-xml session server))
+      :flag-on-changed tomcat-config-changed-flag))))
 
 (def
   ^{:doc "Default settings map for tomcat configuration"}
