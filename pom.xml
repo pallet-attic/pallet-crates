@@ -241,7 +241,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>java</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.5.2-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -301,7 +301,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>postgres</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.6.1-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -356,7 +356,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>ssh-key</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.5.2-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -376,7 +376,7 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>tomcat</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.6.1-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -396,12 +396,12 @@
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>zeromq</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.5.2-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>zookeeper</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.5.2-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -487,7 +487,7 @@
   </repositories>
 
   <properties>
-    <pallet.version>0.5.1-SNAPSHOT</pallet.version>
-    <jclouds.version>1.0-beta-9c</jclouds.version>
+    <pallet.version>0.6.2-SNAPSHOT</pallet.version>
+    <jclouds.version>1.0.0</jclouds.version>
   </properties>
 </project>
