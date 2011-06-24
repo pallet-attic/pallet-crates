@@ -485,7 +485,7 @@
   </repositories>
 
   <properties>
-    <pallet.version>0.6.2-SNAPSHOT</pallet.version>
+    <pallet.version>0.6.2</pallet.version>
     <jclouds.version>1.0.0</jclouds.version>
   </properties>
 </project>
