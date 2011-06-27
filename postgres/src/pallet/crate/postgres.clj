@@ -50,6 +50,8 @@
     :as options}]
   (merge default-settings-map options))
 
+;;; default values, which are distribution and package dependent
+
 (defn package-source
   "Decide where to get the packages from"
   [session version]
@@ -73,7 +75,7 @@
   {:service "postgresql"
    :owner "postgres"
    :external_pid_file (str (stevedore/script (~lib/pid-root)) "/postgresql.pid")
-   :initdb-via :service})
+   :initdb-via :initdb})
 
 (defmethod default-settings [:debian :native]
   [session os-family package-source settings]
@@ -81,14 +83,16 @@
     (merge
      (base-settings session)
      {:packages ["postgresql"]
-      :data_directory (format "/var/lib/postgresql/%s/main" version)
-      :wal_directory (format "/var/lib/postgresql/%s/archive" version)
+      :default-db-name "main"
+      :data_directory (format "/var/lib/postgresql/%s/%%s" version)
+      :wal_directory (format "/var/lib/postgresql/%s/%%s/archive" version)
       :postgresql_file (format
-                        "/etc/postgresql/%s/main/postgresql.conf" version)
-      :hba_file (format "/etc/postgresql/%s/main/pg_hba.conf" version)
-      :ident_file (format "/etc/postgresql/%s/main/pg_ident.conf" version)
-      :external_pid_file (format "/var/run/postgresql/%s-main.pid" version)
-      :unix_socket_directory "/var/run/postgresql"})))
+                        "/etc/postgresql/%s/%%s/postgresql.conf" version)
+      :hba_file (format "/etc/postgresql/%s/%%s/pg_hba.conf" version)
+      :ident_file (format "/etc/postgresql/%s/%%s/pg_ident.conf" version)
+      :external_pid_file (format "/var/run/postgresql/%s-%%s.pid" version)
+      :unix_socket_directory "/var/run/postgresql"
+      :bin (format "/usr/lib/postgresql/%s/bin/" version)})))
 
 (defmethod default-settings [:rh :native]
   [session os-family package-source settings]
@@ -98,11 +102,12 @@
      {:packages (map
                  #(str "postgresql-" (name %))
                  (:components settings #{:server :libs}))
-      :data_directory (format "/var/lib/pgsql/%s/data" version)
-      :wal_directory (format "/var/lib/pgsql/%s/archive" version)
-      :postgresql_file (format "/var/lib/pgsql/%s/data/postgresql.conf" version)
-      :hba_file (format "/var/lib/pgsql/%s/data/pg_hba.conf" version)
-      :ident_file (format "/var/lib/pgsql/%s/data/pg_ident.conf" version)
+      :default-db-name "data"
+      :data_directory (format "/var/lib/pgsql/%s/%%s" version)
+      :wal_directory (format "/var/lib/pgsql/%s/%%s/archive" version)
+      :postgresql_file (format "/var/lib/pgsql/%s/%%s/postgresql.conf" version)
+      :hba_file (format "/var/lib/pgsql/%s/%%s/pg_hba.conf" version)
+      :ident_file (format "/var/lib/pgsql/%s/%%s/pg_ident.conf" version)
       :external_pid_file (format "/var/run/pgsql-%s.pid" version)})))
 
 (defmethod default-settings [:rh :pgdg]
@@ -115,11 +120,12 @@
                  #(str "postgresql" (string/replace version "." "")
                        "-" (name %))
                  (:components settings))
-      :data_directory (format "/var/lib/pgsql/%s/data" version)
-      :wal_directory (format "/var/lib/pgsql/%s/archive" version)
-      :postgresql_file (format "/var/lib/pgsql/%s/data/postgresql.conf" version)
-      :hba_file (format "/var/lib/pgsql/%s/data/pg_hba.conf" version)
-      :ident_file (format "/var/lib/pgsql/%s/data/pg_ident.conf" version)
+      :default-db-name "data"
+      :data_directory (format "/var/lib/pgsql/%s/%%s" version)
+      :wal_directory (format "/var/lib/pgsql/%s/%%s/archive" version)
+      :postgresql_file (format "/var/lib/pgsql/%s/%%s/postgresql.conf" version)
+      :hba_file (format "/var/lib/pgsql/%s/%%s/pg_hba.conf" version)
+      :ident_file (format "/var/lib/pgsql/%s/%%s/pg_ident.conf" version)
       :external_pid_file (format "/var/run/pgsql-%s.pid" version)
       :service (str "postgresql-" version)})))
 
@@ -130,11 +136,12 @@
      (base-settings session)
      {:components []
       :packages ["postgresql"]
-      :data_directory "/var/lib/postgres/data/"
-      :wal_directory "/var/lib/postgres/archive/"
-      :postgresql_file  "/var/lib/postgres/data/postgresql.conf"
-      :hba_file  "/var/lib/postgres/data/pg_hba.conf"
-      :ident_file "/var/lib/postgres/data/pg_ident.conf"
+      :default-db-name "data"
+      :data_directory "/var/lib/postgres/%%s/"
+      :wal_directory "/var/lib/postgres/%%s/archive/"
+      :postgresql_file  "/var/lib/postgres/%%s/postgresql.conf"
+      :hba_file  "/var/lib/postgres/%%s/pg_hba.conf"
+      :ident_file "/var/lib/postgres/%%s/pg_ident.conf"
       :initdb-via :initdb})))
 
 (defmethod default-settings [:debian :debian-backports]
@@ -150,7 +157,10 @@
 
 (def non-options-in-settings
   #{:components :version :permissions :initdb-via :package-source :packages
-    :service :owner :recovery :wal_directory :postgresql_file})
+    :service :owner :recovery :wal_directory :postgresql_file :default-db-name
+    :bin})
+
+;;; Crate functions
 
 (defn settings
   "Build a settings for postgresql"
@@ -169,7 +179,13 @@
      session
      :postgresql instance
      (assoc (select-keys settings non-options-in-settings)
-       :options (apply dissoc settings non-options-in-settings)))))
+       :options (->>
+                 (concat
+                  non-options-in-settings
+                  (filter
+                   identity
+                   (map #(when (map? (second %)) (first %)) settings)))
+                 (apply dissoc settings))))))
 
 (defn postgres
   "Version should be a string identifying the major.minor version number desired
@@ -241,57 +257,61 @@
        (every? #(not (nil? %)) [database user auth-method])
        (auth-methods (name auth-method))))
 
+(defn- vector-to-map
+  [record]
+  (case (name (first record))
+    "local" (apply
+             hash-map
+             (interleave
+              [:connection-type :database :user :auth-method
+               :auth-options]
+              record))
+    ("host"
+     "hostssl"
+     "hostnossl") (let [[connection-type database user address
+                         & remainder] record]
+     (if (re-matches
+          ip-addr-regex (first remainder))
+       ;; Not nil so must be an IP mask.
+       (apply
+        hash-map
+        (interleave
+         [:connection-type :database :user
+          :address :ip-mask :auth-method
+          :auth-options]
+         record))
+       ;; Otherwise, it may be an auth-method.
+       (if (auth-methods
+            (name (first remainder)))
+         (apply
+          hash-map
+          (interleave
+           [:connection-type :database :user
+            :address :auth-method
+            :auth-options]
+           record))
+         (condition/raise
+          :type :postgres-invalid-hba-record
+          :message
+          (format
+           "The fifth item in %s does not appear to be an IP mask or auth method."
+           (pr-str record))))))
+    (condition/raise
+     :type :postgres-invalid-hba-record
+     :message (format
+               "The first item in %s is not a valid connection type."
+               (name record)))))
+
 (defn- record-to-map
   "Takes a record given as a map or vector, and turns it into the map version."
   [record]
   (cond
    (map? record) record
-   (vector? record) (case (name (first record))
-                      "local" (apply
-                               hash-map
-                               (interleave
-                                [:connection-type :database :user :auth-method
-                                 :auth-options]
-                                record))
-                      ("host"
-                       "hostssl"
-                       "hostnossl") (let [[connection-type database user address
-                                           & remainder] record]
-                                      (if (re-matches
-                                           ip-addr-regex (first remainder))
-                                        ;; Not nil so must be an IP mask.
-                                        (apply
-                                         hash-map
-                                         (interleave
-                                          [:connection-type :database :user
-                                           :address :ip-mask :auth-method
-                                           :auth-options]
-                                          record))
-                                        ;; Otherwise, it may be an auth-method.
-                                        (if (auth-methods
-                                             (name (first remainder)))
-                                          (apply
-                                           hash-map
-                                           (interleave
-                                            [:connection-type :database :user
-                                             :address :auth-method
-                                             :auth-options]
-                                            record))
-                                          (condition/raise
-                                           :type :postgres-invalid-hba-record
-                                           :message
-                                           (format
-                                            "The fifth item in %s does not appear to be an IP mask or auth method."
-                                            (pr-str record))))))
-                       (condition/raise
-                        :type :postgres-invalid-hba-record
-                        :message (format
-                                  "The first item in %s is not a valid connection type."
-                                  (name record))))
+   (vector? record) (vector-to-map record)
    :else
-   (condition/raise :type :postgres-invalid-hba-record
-                    :message (format "The record %s must be a vector or map."
-                                     (name record)))))
+   (condition/raise
+    :type :postgres-invalid-hba-record
+    :message (format "The record %s must be a vector or map." (name record)))))
 
 (defn- format-auth-options
   "Given the auth-options map, returns a string suitable for inserting into the
@@ -326,23 +346,35 @@
    Options:
    :records     - A sequence of records (either vectors or maps of
                   keywords/strings).
-   :conf-path   - A format string for the full file path, with a %s for the
-                  version."
-  [session & {:keys [records conf-path instance]}]
+   :conf-path   - A format string for the full file path, with %s
+                  placeholders for the version and database name."
+  [session & {:keys [records conf-path instance db]}]
   (let [settings (parameter/get-target-settings session :postgresql instance)
+        db (or db (:default-db-name settings))
+        db-kw (keyword db)
         version (:version settings)
-        records (or records (:permissions settings) [])
+        records (or
+                 records
+                 (concat
+                  (:permissions settings)
+                  (-> settings db-kw :permissions))
+                 [])
         conf-path (or
-                   (when-let [d conf-path] (format d version))
-                   (-> settings :options :hba_file))
+                   (when conf-path (format conf-path version db))
+                   (format (-> settings :options :hba_file) db))
         hba-contents (apply str pallet-cfg-preamble
                             (map format-hba-record records))]
-    (-> session
-        (remote-file/remote-file conf-path
-         :content hba-contents
-         :literal true
-         :flag-on-changed postgresql-config-changed-flag
-         :owner (:owner settings)))))
+    (->
+     session
+     (directory/directory
+      (stevedore/script @(~lib/dirname ~conf-path))
+      :owner (:owner settings "postgres") :mode "0755" :path true)
+     (remote-file/remote-file
+      conf-path
+      :content hba-contents
+      :literal true
+      :flag-on-changed postgresql-config-changed-flag
+      :owner (:owner settings)))))
 
 ;;
 ;; postgresql.conf
@@ -390,20 +422,28 @@
    Options:
    :options     - A map of parameters (string(able)s, numbers, or vectors of
                   such).
-   :conf-path   - A format string for the file path, with a %s for
-                  the version."
-  [session & {:keys [options conf-path instance]}]
+   :conf-path   - A format string for the file path, with %s for
+                  the version and for the database name."
+  [session & {:keys [options conf-path instance db]}]
   (let [settings (parameter/get-target-settings session :postgresql instance)
+        db (or db (:default-db-name settings))
+        db-kw (keyword db)
         version (:version settings)
         conf-path (or
-                   conf-path
-                   (when-let [d conf-path] (format d version))
-                   (-> settings :postgresql_file))
-        options (or options (:options settings))
+                   (when conf-path (format conf-path version db))
+                   (format (-> settings :postgresql_file) db))
+        options (or
+                 options
+                 (concat (:options settings) (-> settings db-kw :options)))
         contents (apply str pallet-cfg-preamble (map format-parameter options))]
-    (remote-file/remote-file
-     session conf-path :content contents :literal true :owner (:owner settings)
-     :flag-on-changed postgresql-config-changed-flag)))
+    (->
+     session
+     (directory/directory
+      (stevedore/script @(~lib/dirname ~conf-path))
+      :owner (:owner settings "postgres") :mode "0755" :path true)
+     (remote-file/remote-file
+      conf-path :content contents :literal true :owner (:owner settings)
+      :flag-on-changed postgresql-config-changed-flag))))
 
 (defn recovery-conf
   "Generates a recovery.conf file from the arguments.
@@ -411,41 +451,56 @@
    Options:
    :options     - A map of parameters (string(able)s, numbers, or vectors of
                   such).
-   :conf-path   - A format string for the file path, with a %s for
-                  the version."
-  [session & {:keys [options conf-path instance]}]
+   :conf-path   - A format string for the file path, with %s for
+                  the version and for the database name."
+  [session & {:keys [options conf-path instance db]}]
   (let [settings (parameter/get-target-settings session :postgresql instance)
+        db (or db (:default-db-name settings))
+        db-kw (keyword db)
         version (:version settings)
-        conf-path (format
-                   "%s/recovery.conf"
-                   (-> settings :options :data_directory))
-        options (or options (:recovery settings))
+        conf-path (or
+                   (when conf-path (format conf-path version db))
+                   (format
+                    "%s/%s/recovery.conf"
+                    (-> settings :options :data_directory)
+                    db))
+        options (or
+                 options
+                 (concat (:recovery settings) (-> settings db-kw :recovery)))
         contents (apply str pallet-cfg-preamble (map format-parameter options))]
-    (remote-file/remote-file
-     session conf-path :content contents :literal true :owner (:owner settings)
-     :flag-on-changed postgresql-config-changed-flag)))
+    (->
+     session
+     (directory/directory
+      (stevedore/script @(~lib/dirname ~conf-path))
+      :owner (:owner settings "postgres") :mode "0755" :path true)
+     (remote-file/remote-file
+      conf-path :content contents :literal true :owner (:owner settings)
+      :flag-on-changed postgresql-config-changed-flag))))
 
 (declare service)
 
 (defn initdb
   "Initialise a db"
-  [session & {:keys [instance]}]
+  [session & {:keys [instance db]}]
   (let [settings (parameter/get-target-settings session :postgresql instance)
+        db (or db (:default-db-name settings))
+        db-kw (keyword db)
         initdb-via (:initdb-via settings :initdb)
-        data-dir (-> settings :options :data_directory)]
+        data-dir (format (-> settings :options :data_directory) db)]
     (case initdb-via
-          :service (service session :action :initdb)
-          :initdb (->
-                   session
-                   (directory/directory
-                    data-dir
-                    :owner (:owner settings "postgres")
-                    :mode "0755"
-                    :path true)
-                   (exec-script/exec-checked-script
-                    "initdb"
-                    (sudo -u ~(:owner settings "postgres")
-                          initdb -D ~data-dir))))))
+      :service (service session :action :initdb)
+      :initdb (->
+               session
+               (directory/directory
+                data-dir
+                :owner (:owner settings "postgres")
+                :mode "0755"
+                :path true)
+               (exec-script/exec-checked-script
+                "initdb"
+                (if (not (file-exists? ~(str data-dir "/PG_VERSION")))
+                  (sudo -u ~(:owner settings "postgres")
+                        (str ~(:bin settings) initdb) -D ~data-dir)))))))
 
 ;;
 ;; Scripts
@@ -461,8 +516,10 @@
      :as-user username       - Run this script having sudoed to this (system)
                                user. Default: postgres
      :ignore-result          - Ignore any error return value out of psql."
-  [session & {:keys [as-user ignore-result instance show-stdout] :as options}]
+  [session & {:keys [as-user ignore-result instance show-stdout db]
+              :as options}]
   (let [settings (parameter/get-target-settings session :postgresql instance)
+        db (or db (:default-db-name settings))
         as-user (or as-user (-> settings :owner))
         file (str (stevedore/script @TMPDIR:-/tmp) "/"
                   (gensym "postgresql") ".sql")]
@@ -479,7 +536,7 @@
          ;; anyways (eg, create database on a database that already exists does
          ;; nothing, but is counted as an error).
          ("{\n"
-          sudo "-u" ~as-user psql "-f" ~file
+          sudo "-u" ~as-user psql "-f" ~file -d ~db
           ~(if show-stdout "" ">/dev/null")
           "2>&1"
           ~(if ignore-result "|| true" "") "\n}"))
@@ -496,7 +553,7 @@
    Example: (create-database
               \"my-database\" :db-parameters [:encoding \"'LATIN1'\"])"
   [session db-name & rest]
-  (let [{:keys [db-parameters] :as options} rest
+  (let [{:keys [db-parameters db] :as options} rest
         db-parameters-str (string/join " " (map name db-parameters))]
     ;; Postgres simply has no way to check if a database exists and issue a
     ;; "CREATE DATABASE" only in the case that it doesn't. That would require a
@@ -535,7 +592,7 @@
    Example (create-role
              \"myuser\" :user-parameters [:encrypted :password \"'mypasswd'\"])"
   [session username & rest]
-  (let [{:keys [user-parameters] :as options} rest
+  (let [{:keys [user-parameters db] :as options} rest
         user-parameters-str (string/join " " (map name user-parameters))]
     (apply postgresql-script
            session
@@ -559,3 +616,10 @@
                   (assoc options :if-flag postgresql-config-changed-flag)
                   options)]
     (-> session (thread-expr/apply-map-> service/service service options))))
+
+(defn log-settings
+  "Log postgresql settings"
+  [session & {:keys [instance level] :or {level :info}}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)]
+    (logging/log level (format "Postgresql %s %s" (or instance "") settings))
+    session))

@@ -20,12 +20,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet</artifactId>
-      <version>0.6.2-SNAPSHOT</version>
+      <version>0.6.3-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet</artifactId>
-      <version>0.6.2-SNAPSHOT</version>
+      <version>0.6.3-SNAPSHOT</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>

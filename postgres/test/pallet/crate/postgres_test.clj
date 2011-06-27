@@ -44,15 +44,26 @@
                             (automated-admin-user/automated-admin-user))
                 :settings (phase/phase-fn
                            (postgres/settings
-                            (postgres/settings-map {})))
+                            (postgres/settings-map
+                             {:db1 {:options {:port 5433}}})))
                 :configure (phase/phase-fn
                             (postgres/postgres))
                 :verify (phase/phase-fn
+                         (postgres/log-settings)
                          (postgres/initdb)
+                         (postgres/initdb :db "db1")
                          (postgres/hba-conf)
+                         (postgres/hba-conf :db "db1")
                          (postgres/postgresql-conf)
+                         (postgres/postgresql-conf :db "db1")
                          (postgres/create-database "db")
+                         (postgres/postgresql-script
+                          :content "create table table1;")
                          (postgres/create-role "user")
+                         (postgres/create-database "db" :db "db1")
+                         (postgres/create-role "user" :db "db1")
+                         (postgres/postgresql-script
+                          :content "create table table2;")
                          (exec-script/exec-checked-script
                           "check postgres functional"
                           (pipe (psql --version) (grep "9.0"))))}
