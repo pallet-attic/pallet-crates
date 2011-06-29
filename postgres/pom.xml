@@ -31,6 +31,11 @@
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
+      <artifactId>etc-default</artifactId>
+      <version>0.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
       <artifactId>automated-admin-user</artifactId>
       <optional>true</optional>
       <scope>test</scope>
