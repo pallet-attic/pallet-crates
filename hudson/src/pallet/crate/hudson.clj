@@ -36,6 +36,7 @@
 (defvar- *maven-file* "hudson.tasks.Maven.xml")
 (defvar- *maven2-job-config-file* "job/maven2_config.xml")
 (defvar- *ant-job-config-file* "job/ant_config.xml")
+(defvar- *script-job-config-file* "job/script_config.xml")
 (defvar- *git-file* "scm/git.xml")
 (defvar- *svn-file* "scm/svn.xml")
 (defvar- *ant-file* "hudson.tasks.Ant.xml")
@@ -624,6 +625,38 @@
                                (:ignore-upstream-changes options true))))
    scm-type scms options))
 
+(defn script-job-xml
+  "Generate script job/config.xml content"
+  [node-type scm-type scms options]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *script-job-config-file*) node-type [scm-type scms options]
+    [:daysToKeep] (enlive/transform-if-let [keep (:days-to-keep options)]
+                                           (xml/content (str keep)))
+    [:numToKeep] (enlive/transform-if-let [keep (:num-to-keep options)]
+                                          (xml/content (str keep)))
+    [:properties] (enlive/transform-if-let
+                   [properties (:properties options)]
+                   (xml/content (map plugin-property properties)))
+    [:scm] (xml/substitute
+            (when scm-type
+              (output-scm-for scm-type node-type (first scms) options)))
+    [:concurrentBuild] (xml/content
+                        (truefalse (:concurrent-build options false)))
+    [:builders xml/first-child] (xml/clone-for
+                                 [task (:commands options)]
+                                 [:command] (xml/content task))
+    [:publishers]
+    (xml/html-content
+     (string/join (map publisher-config (:publishers options))))
+    [:aggregatorStyleBuild] (xml/content
+                             (truefalse
+                              (:aggregator-style-build options true)))
+    [:ignoreUpstreamChanges] (xml/content
+                              (truefalse
+                               (:ignore-upstream-changes options true))))
+   scm-type scms options))
+
 (defmulti output-build-for
   "Output the build definition for specified type"
   (fn [build-type node-type scm-type scms options] build-type))
@@ -637,6 +670,11 @@
   [build-type node-type scm-type scms options]
   (let [scm-type (or scm-type (some determine-scm-type scms))]
     (ant-job-xml node-type scm-type scms options)))
+
+(defmethod output-build-for :script
+  [build-type node-type scm-type scms options]
+  (let [scm-type (or scm-type (some determine-scm-type scms))]
+    (script-job-xml node-type scm-type scms options)))
 
 (defn credential-entry
   "Produce an xml representation for a credential entry in a credential store"
@@ -742,6 +780,7 @@
        (:scm-type options)
        scm
        (dissoc options :scm :scm-type))
+      :literal true
       :owner hudson-owner :group hudson-group :mode "0664")
      (directory/directory
       hudson-data-path

@@ -8,7 +8,7 @@
     <relativePath>..</relativePath>
   </parent>
   <artifactId>hudson</artifactId>
-  <version>0.4.4</version>
+  <version>0.4.5-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
