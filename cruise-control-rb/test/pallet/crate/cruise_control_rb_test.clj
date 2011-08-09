@@ -9,7 +9,7 @@
    clojure.test
    pallet.test-utils))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures :once with-ubuntu-script-template with-bash-script-language)
 
 (deftest cruise-control-rb-job-test
   (is (= (stevedore/checked-script

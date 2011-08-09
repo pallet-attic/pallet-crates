@@ -25,10 +25,14 @@
 
 (def parameters {:host
                  {:id
-                  {:tomcat {:owner "tomcat6"
-                            :group "tomcat6"
-                            :config-path "/etc/tomcat6/"
-                            :base "/var/lib/tomcat6/"}}}})
+                  {:tomcat
+                   {:default
+                    {:owner "tomcat6"
+                     :group "tomcat6"
+                     :config-path "/etc/tomcat6/"
+                     :base "/var/lib/tomcat6/"
+                     :deploy "/var/lib/tomcat6/webapps"}}}}})
+
 (deftest hudson-tomcat-test
   (is (= (first
           (build-actions/build-actions

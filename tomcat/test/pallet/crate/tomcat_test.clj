@@ -28,7 +28,7 @@
    clojure.test
    pallet.test-utils))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures :once with-ubuntu-script-template with-bash-script-language)
 
 (deftest install-test
   (is (= (first
@@ -37,7 +37,7 @@
            (package/package-manager :update)
            (package/package "tomcat6")
            (directory/directory
-            (stevedore/script (user-home "tomcat6"))
+            (stevedore/script (~lib/user-home "tomcat6"))
             :owner "tomcat6" :group "tomcat6" :mode "0755")
            (exec-script/exec-checked-script
             "Check tomcat is at /var/lib/tomcat6/"
@@ -70,14 +70,17 @@
           (build-actions/build-actions
            {:parameters
             {:host {:id {:tomcat
-                         {:default {:base "/p/" :owner "o" :group "g"}}}}}}
+                         {:default {:base "/p/" :deploy "/p/webapps"
+                                    :owner "o" :group "g"}}}}}}
            (tomcat/deploy nil :remote-file "file.war"))))))
 
 (deftest tomcat-undeploy-all-test
   (is (= "rm -r -f /p/webapps/*\n"
          (first
           (build-actions/build-actions
-           {:parameters {:host {:id {:tomcat {:default {:base "/p/"}}}}}}
+           {:parameters
+            {:host {:id {:tomcat {:default
+                                  {:base "/p/" :deploy "/p/webapps"}}}}}}
            (tomcat/undeploy-all))))))
 
 (deftest tomcat-undeploy-test
@@ -88,7 +91,9 @@
            (file/file "/p/webapps/ROOT.war" :action :delete)))
          (first
           (build-actions/build-actions
-           {:parameters {:host {:id {:tomcat {:default {:base "/p/"}}}}}}
+           {:parameters
+            {:host {:id {:tomcat {:default {:base "/p/"
+                                            :deploy "/p/webapps"}}}}}}
            (tomcat/undeploy nil)))))
   (is (= (first
           (build-actions/build-actions
@@ -97,7 +102,9 @@
            (file/file "/p/webapps/app.war" :action :delete)))
          (first
           (build-actions/build-actions
-           {:parameters {:host {:id {:tomcat {:default {:base "/p/"}}}}}}
+           {:parameters
+            {:host {:id {:tomcat {:default {:base "/p/"
+                                            :deploy "/p/webapps"}}}}}}
            (tomcat/undeploy :app)))))
   (is (= (first
           (build-actions/build-actions
@@ -106,7 +113,9 @@
            (file/file "/p/webapps/foo.war" :action :delete)))
          (first
           (build-actions/build-actions
-           {:parameters {:host {:id {:tomcat {:default {:base "/p/"}}}}}}
+           {:parameters
+            {:host {:id {:tomcat {:default {:base "/p/"
+                                            :deploy "/p/webapps"}}}}}}
            (tomcat/undeploy "foo"))))))
 
 (deftest tomcat-policy-test

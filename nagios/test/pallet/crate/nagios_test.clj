@@ -12,7 +12,10 @@
    [clojure.string :as string])
   (:use clojure.test))
 
-(use-fixtures :once test-utils/with-ubuntu-script-template)
+(use-fixtures
+ :once
+ test-utils/with-ubuntu-script-template
+ test-utils/with-bash-script-language)
 
 (def remote-file* (action/action-fn remote-file/remote-file-action))
 

@@ -7,10 +7,9 @@
    [pallet.stevedore :as stevedore])
   (:use
    clojure.test
-   pallet.test-utils
-))
+   pallet.test-utils))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures :once with-ubuntu-script-template with-bash-script-language)
 
 (deftest gem-script-test
   (is (= "gem install fred"

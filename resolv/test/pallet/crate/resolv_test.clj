@@ -5,7 +5,7 @@
   (:require
    [pallet.build-actions :as build-actions]))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures :once with-ubuntu-script-template with-bash-script-language)
 
 (with-private-vars [pallet.crate.resolv
                     [write-key-value write-option write-options write
