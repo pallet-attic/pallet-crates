@@ -101,7 +101,7 @@
                 [:options :recovery :start]))
       (into {}
             (map
-             #(vector % (concat (% defaults) (% overrides)))
+             #(vector % (distinct (concat (% defaults) (% overrides))))
              [:permissions]))))
    settings))
 
