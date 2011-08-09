@@ -90,7 +90,7 @@
   "Calculates and attaches the settings to the request object, for later use.
     :instance  an id used to discriminate between multiple installs."
   [session {:keys [user group version package service base-dir config-dir
-                   use-jpackage server instance]
+                   use-jpackage server instance deploy-dir webapps-dir]
             :as settings-map}]
   (let [package (or package
                     (version-package version version)
@@ -101,6 +101,8 @@
         group (or group tomcat-user)
         service (or service package)
         base-dir (or base-dir (str tomcat-base package "/"))
+        deploy-dir (or deploy-dir (str tomcat-base package "/webapps"))
+        webapps-dir (or webapps-dir (str tomcat-base package "/webapps"))
         config-dir (str tomcat-config-root package "/")
         use-jpackage (if (nil? use-jpackage)
                        (and
@@ -115,6 +117,8 @@
           settings-map
           {:package package
            :base base-dir
+           :deploy deploy-dir
+           :webapps webapps-dir
            :config-path config-dir
            :owner user
            :group group
@@ -166,7 +170,7 @@
         (package/package-manager :update)
         (thread-expr/apply-map-> package/package package pkg-options)
         (directory/directory ;; fix jpackage ownership of tomcat home
-         (stevedore/script (user-home ~user))
+         (stevedore/script (~lib/user-home ~user))
          :owner user :group group :mode "0755")
         (exec-script/exec-checked-script
          (format "Check tomcat is at %s" base-dir)
@@ -201,10 +205,9 @@
    name."
   [session app-name & {:keys [instance]}]
   (let [settings (parameter/get-target-settings session :tomcat instance)
-        tomcat-base (:base settings)
         app-name (or app-name "ROOT")
         app-name (if (string? app-name) app-name (name app-name))
-        exploded-app-dir (str tomcat-base "webapps/" app-name)]
+        exploded-app-dir (str (:webapps settings) "/" app-name)]
     (-> session
         (directory/directory exploded-app-dir :action :delete)
         (file/file (str exploded-app-dir ".war") :action :delete))))
@@ -212,11 +215,10 @@
 (defn undeploy-all
   "Removes all deployed war file and exploded webapp directories."
   [session & {:keys [instance]}]
-  (let [settings (parameter/get-target-settings session :tomcat instance)
-        tomcat-base (:base settings)]
+  (let [settings (parameter/get-target-settings session :tomcat instance)]
     (exec-script/exec-script
      session
-     (~lib/rm ~(str tomcat-base "webapps/*") :r true :f true))))
+     (~lib/rm ~(str (:webapps settings) "/*") :r true :f true))))
 
 (defn deploy
   "Copies a .war file to the tomcat server under webapps/${app-name}.war.  An
@@ -229,10 +231,12 @@
   [session app-name & {:keys [instance] :as opts}]
   (let [settings (parameter/get-target-settings session :tomcat instance)
         tomcat-base (:base settings)
+        tomcat-deploy (:deploy settings)
         tomcat-user (:owner settings)
         tomcat-group (:group settings)
-        exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
-        deployed-warfile (str exploded-app-dir ".war")
+        exploded-app-dir (str (:webapps settings) "/" (or app-name "ROOT"))
+        deploy-dir (str tomcat-deploy "/" (or app-name "ROOT"))
+        deployed-warfile (str deploy-dir ".war")
         options (merge
                  {:owner tomcat-user :group tomcat-group :mode 600}
                  (select-keys opts remote-file/all-options))]
@@ -726,7 +730,7 @@
 (defn context
   "Define a tomcat context.
 
-   Accepts: loader, manager realm, valves, listeners, resources, resource-links,
+   Accepts: loader, manager realm, valves, listeners, resources, resource-links
    parameters, environments, transactions and watched-resources
 
    Options are implemenation specific, and include:
