@@ -626,6 +626,43 @@
                                (:ignore-upstream-changes options true))))
    scm-type scms options))
 
+(defn script-job-xml
+  "Generate script job/config.xml content"
+  [session scm-type scms options]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *ant-job-config-file*) session
+    [scm-type scms options]
+    [:daysToKeep] (enlive/transform-if-let [keep (:days-to-keep options)]
+                                           (xml/content (str keep)))
+    [:numToKeep] (enlive/transform-if-let [keep (:num-to-keep options)]
+                                          (xml/content (str keep)))
+    [:properties] (enlive/transform-if-let
+                   [properties (:properties options)]
+                   (xml/content (map plugin-property properties)))
+    [:scm] (xml/substitute
+            (when scm-type
+              (output-scm-for scm-type session (first scms) options)))
+    [:concurrentBuild] (xml/content
+                        (truefalse (:concurrent-build options false)))
+    [:builders xml/first-child] (xml/clone-for
+                                 [task (:script-tasks options)]
+                                 [:targets] (xml/content (:targets task))
+                                 [:properties] (xml/content
+                                                (format/name-values
+                                                 (:properties task)
+                                                 :separator "=")))
+    [:publishers]
+    (xml/html-content
+     (string/join (map publisher-config (:publishers options))))
+    [:aggregatorStyleBuild] (xml/content
+                             (truefalse
+                              (:aggregator-style-build options true)))
+    [:ignoreUpstreamChanges] (xml/content
+                              (truefalse
+                               (:ignore-upstream-changes options true))))
+   scm-type scms options))
+
 (defmulti output-build-for
   "Output the build definition for specified type"
   (fn [build-type session scm-type scms options] build-type))
@@ -639,6 +676,11 @@
   [build-type session scm-type scms options]
   (let [scm-type (or scm-type (some determine-scm-type scms))]
     (ant-job-xml session scm-type scms options)))
+
+(defmethod output-build-for :script
+  [build-type session scm-type scms options]
+  (let [scm-type (or scm-type (some determine-scm-type scms))]
+    (script-job-xml session scm-type scms options)))
 
 (defn credential-entry
   "Produce an xml representation for a credential entry in a credential store"
