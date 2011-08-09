@@ -21,6 +21,7 @@
     [pallet.parameter :as parameter]
     [pallet.parameter-test :as parameter-test]
     [pallet.phase :as phase]
+    [pallet.script.lib :as lib]
     [pallet.session :as session]
     [pallet.stevedore :as stevedore]
     [pallet.thread-expr :as thread-expr])
