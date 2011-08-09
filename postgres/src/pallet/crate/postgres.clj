@@ -669,9 +669,10 @@
          (str "pgsql/" (:service cluster-settings))
          :PGDATA (-> cluster-settings :options :data_directory)
          :PGPORT (-> cluster-settings :options :port))
-        (thread-expr/when->
+        (thread-expr/if->
          (= :auto (-> cluster-settings :start :start))
-         (service/service (:service cluster-settings) :action :enable))))))))
+         (service/service (:service cluster-settings) :action :enable)
+         (service/service (:service cluster-settings) :action :disable))))))))
 
 (defn service-config
   "Configure the service architecture."
