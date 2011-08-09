@@ -31,7 +31,8 @@
 
 (def noninteractive
   (script/with-script-context [:ubuntu]
-    (stevedore/script (package-manager-non-interactive))))
+    (stevedore/with-script-language :pallet.stevedore.bash/bash
+      (stevedore/script (package-manager-non-interactive)))))
 
 (defn debconf [session pkg]
   (package/package-manager
