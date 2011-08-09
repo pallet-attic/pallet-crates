@@ -866,6 +866,27 @@ END$$;"
         (thread-expr/apply-map->
          service/service (:service cluster-settings) options)))))))
 
+(defn controldata-script
+  [session {:keys [as-user instance cluster] :as options}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)
+         cluster (or cluster (:default-cluster-name settings))
+         cluster-settings (settings-for-cluster session cluster)
+         as-user (or as-user (-> settings :owner))]
+     (stevedore/script
+      (sudo "-u" ~as-user
+       ~(if-let [bin (:bin settings)]
+          (str bin "/pg_controldata")
+          "pg_controldata")
+       ~(-> cluster-settings :options :data_directory)))))
+
+(defn controldata
+  "Execute pg_controldata."
+  [session & {:keys [as-user instance cluster] :as options}]
+  (-> session
+      (exec-script/exec-checked-script
+       "pg_controldata"
+       (~controldata-script session options))))
+
 (defn log-settings
   "Log postgresql settings"
   [session & {:keys [instance level] :or {level :info}}]
