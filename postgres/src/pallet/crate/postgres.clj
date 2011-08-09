@@ -429,6 +429,26 @@
    (parameter/get-target-settings session :postgresql instance)
    [:clusters (keyword cluster)]))
 
+(defn check-settings
+  "Check that settings are valid"
+  [session settings cluster-settings cluster & keys]
+  (let [error-fn (fn [session ^String message]
+                   (logging/error (format message cluster settings))
+                   (assert false)
+                   session)
+        missing-keys (remove #(get-in cluster-settings %) keys)]
+    (->
+     session
+     (thread-expr/when->
+      (not settings)
+      (error-fn "No settings found %s %s"))
+     (thread-expr/when->
+      (not cluster-settings)
+      (error-fn "No cluster settings found %s %s"))
+     (thread-expr/when->
+      (seq missing-keys)
+      (error-fn (format "Missing keys %s %%s %%s" (vec missing-keys)))))))
+
 (defn conf-file
   "Generates a postgresql configuration file"
   [session file-keys values-kw formatter & {:keys [instance cluster]}]
@@ -441,6 +461,7 @@
                             (map formatter (values-kw cluster-settings)))]
     (->
      session
+     (check-settings settings cluster-settings cluster file-keys)
      (directory/directory
       (stevedore/script @(~lib/dirname ~conf-path))
       :owner (:owner settings "postgres") :mode "0700" :path true)
