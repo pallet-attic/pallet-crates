@@ -472,6 +472,12 @@
       :flag-on-changed postgresql-config-changed-flag
       :owner (:owner settings)))))
 
+(defn default-cluster-name
+  "Returns the default cluster name"
+  [session & {:keys [instance]}]
+  (let [settings (parameter/get-target-settings session :postgresql instance)]
+    (:default-cluster-name settings)))
+
 ;;; Crate functions
 
 (defn settings-map
