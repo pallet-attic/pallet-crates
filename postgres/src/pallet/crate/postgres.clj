@@ -532,11 +532,15 @@
                   (default-settings
                     session (session/base-distribution session)
                     package-source settings-map)
-                  settings-map)]
+                  settings-map)
+        old-settings (parameter/get-target-settings
+                      session :postgresql instance nil)]
     (logging/infof "Postgresql Settings %s" settings)
     (->
      session
-     (parameter/assoc-target-settings :postgresql instance settings)
+     (parameter/assoc-target-settings
+      :postgresql instance
+      (assoc settings :clusters (:clusters old-settings)))
      (thread-expr/when-let->
       [cluster-name (:default-cluster-name settings)]
       (cluster-settings cluster-name {} :instance instance)))))
