@@ -80,11 +80,13 @@
              :datestyle "iso, ymd"
              :default_text_search_config "pg_catalog.english"}
    :permissions [["local" "all" "postgres" "ident" ""]
-                 ["local" "postgres" "postgres" "ident" ""]
-                 ["host" "all" "all" "127.0.0.1/32" "ident"]
-                 ["host" "all" "all" "::1/128" "ident"]]
+                 ["local" "postgres" "postgres" "ident" ""]]
    :start {:start :auto}
    :listen_addresses "127.0.0.1"})
+
+(def allow-ident-permissions
+  [["host" "all" "all" "127.0.0.1/32" "ident"]
+   ["host" "all" "all" "::1/128" "ident"]])
 
 (defn merge-settings
   "Merge postgresql settings maps"
