@@ -66,6 +66,25 @@
     (postgres/create-database "db")
     (postgres/create-role "user"))))
 
+(deftest cluster-settings-test
+  (let [settings
+        (second (build-actions/build-actions
+                 {}
+                 (postgres/settings
+                  (postgres/settings-map
+                   {:version "9.0"
+                    :wal_directory "/var/lib/postgres/%s/archive/"}))
+                 (postgres/cluster-settings "db1" {})
+                 (postgres/cluster-settings "db2" {})
+                 (postgres/settings (postgres/settings-map {:version "9.0"}))))
+        pg-settings (-> settings :parameters :host :id :postgresql :default)]
+    (is (-> pg-settings :clusters :db1))
+    (is (-> pg-settings :clusters :db2))
+    (is
+     (re-find #"db1/archive" (-> pg-settings :clusters :db1 :wal_directory)))
+    (is
+     (re-find #"db2/archive" (-> pg-settings :clusters :db2 :wal_directory)))))
+
 (def pgsql-9-unsupported
   [{:os-family :debian :os-version-matches "5.0.7"}
    {:os-family :debian :os-version-matches "5.0"}])
