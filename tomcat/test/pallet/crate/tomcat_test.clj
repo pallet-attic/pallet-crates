@@ -81,7 +81,7 @@
           (build-actions/build-actions
            {:parameters
             {:host {:id {:tomcat {:default
-                                  {:base "/p/" :deploy "/p/webapps"}}}}}}
+                                  {:base "/p/" :webapps "/p/webapps"}}}}}}
            (tomcat/undeploy-all))))))
 
 (deftest tomcat-undeploy-test
@@ -94,7 +94,7 @@
           (build-actions/build-actions
            {:parameters
             {:host {:id {:tomcat {:default {:base "/p/"
-                                            :deploy "/p/webapps"}}}}}}
+                                            :webapps "/p/webapps"}}}}}}
            (tomcat/undeploy nil)))))
   (is (= (first
           (build-actions/build-actions
@@ -105,7 +105,7 @@
           (build-actions/build-actions
            {:parameters
             {:host {:id {:tomcat {:default {:base "/p/"
-                                            :deploy "/p/webapps"}}}}}}
+                                            :webapps "/p/webapps"}}}}}}
            (tomcat/undeploy :app)))))
   (is (= (first
           (build-actions/build-actions
@@ -116,7 +116,7 @@
           (build-actions/build-actions
            {:parameters
             {:host {:id {:tomcat {:default {:base "/p/"
-                                            :deploy "/p/webapps"}}}}}}
+                                            :webapps "/p/webapps"}}}}}}
            (tomcat/undeploy "foo"))))))
 
 (deftest tomcat-policy-test
