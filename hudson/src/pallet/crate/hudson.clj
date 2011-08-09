@@ -62,10 +62,13 @@
 (defn tomcat-deploy
   "Install hudson on tomcat.
      :version version-string   - specify version, eg 1.355, or :latest"
-  [session & {:keys [version] :or {version :latest} :as options}]
+  [session & {:keys [version tomcat-instance]
+              :or {version :latest} :as options}]
   (logging/trace (str "Hudson - install on tomcat"))
-  (let [user (parameter/get-for-target session [:tomcat :owner])
-        group (parameter/get-for-target session [:tomcat :group])
+  (let [tc-settings (parameter/get-target-settings
+                     session :tomcat tomcat-instance)
+        user (:owner tc-settings)
+        group (:group tc-settings)
         file (str hudson-data-path "/hudson.war")]
     (->
      session
