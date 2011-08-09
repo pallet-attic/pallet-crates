@@ -738,11 +738,12 @@
          :no-versioning true
          :owner as-user
          (select-keys options remote-file/content-options))
-        (exec-script/exec-script
+        (exec-script/exec-checked-script
          ;; Note that we stuff all output. This is because certain commands in
          ;; PostgreSQL are idempotent but spit out an error and an error exit
          ;; anyways (eg, create database on a database that already exists does
          ;; nothing, but is counted as an error).
+         "psql script"
          ("{\n"
           sudo "-u" ~as-user
           ~(if (:has-pg-wrapper settings)
@@ -794,9 +795,11 @@
    (re-matches #"9.[0-2]" version)
    "do $$declare user_rec record;
 BEGIN
- select into user_rec * from pg_user where usename='%1$s';
- if user_rec.usename is null then
+ select into user_rec * from pg_roles where rolname='%1$s';
+ if user_rec.rolname is null then
      create role %1$s %2$s;
+ else
+     alter role %1$s %2$s;
  end if;
 END$$;"
    :else
@@ -828,7 +831,10 @@ END$$;"
            session
            :content (format
                      (create-role-pgsql (:version settings))
-                     username user-parameters-str)
+                     username
+                     (if (string/blank? user-parameters-str)
+                       ""
+                       (str "WITH " user-parameters-str)))
            :literal true
            rest)))
 
