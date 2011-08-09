@@ -9,4 +9,12 @@
   </parent>
   <artifactId>github</artifactId>
   <version>0.5.1-SNAPSHOT</version>
+
+  <dependencies>
+    <dependency>
+      <groupId>clj-http</groupId>
+      <artifactId>clj-http</artifactId>
+      <version>0.1.1</version>
+    </dependency>
+  </dependencies>
 </project>
