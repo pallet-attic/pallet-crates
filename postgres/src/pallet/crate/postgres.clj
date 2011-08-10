@@ -863,8 +863,10 @@ END$$;"
        (thread-expr/let->
         [cluster-name (name cluster)
          cluster-settings (settings-for-cluster session cluster-name)]
-        (thread-expr/apply-map->
-         service/service (:service cluster-settings) options)))))))
+        (thread-expr/if->
+         (= :auto (-> cluster-settings :start :start))
+         (thread-expr/apply-map->
+          service/service (:service cluster-settings) options))))))))
 
 (defn controldata-script
   [session {:keys [as-user instance cluster] :as options}]
