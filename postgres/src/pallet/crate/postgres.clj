@@ -141,6 +141,7 @@
      {:packages ["postgresql"]
       :default-cluster-name "main"
       :bin (format "/usr/lib/postgresql/%s/bin/" version)
+      :share (format "/usr/lib/postgresql/%s/share/" version)
       :wal_directory (format "/var/lib/postgresql/%s/%%s/archive" version)
       :postgresql_file (format
                         "/etc/postgresql/%s/%%s/postgresql.conf" version)
@@ -181,6 +182,7 @@
                        "-" (name %))
                  (:components settings))
       :bin (format "/usr/pgsql-%s/bin/" version)
+      :share (format "/usr/pgsql-%s/share/" version)
       :default-cluster-name "data"
       :service (str "postgresql-" version "-%s")
       :default-service (str "postgresql-" version)
