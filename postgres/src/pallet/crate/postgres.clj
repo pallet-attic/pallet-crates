@@ -745,8 +745,9 @@
          ;; PostgreSQL are idempotent but spit out an error and an error exit
          ;; anyways (eg, create database on a database that already exists does
          ;; nothing, but is counted as an error).
+         ;; Subshell used to isolate any cd
          (str "psql script" (if title (str " - " title) ""))
-         ("{\n"
+         ("(\n"
           cd (~lib/user-home ~as-user) "&&"
           sudo "-u" ~as-user
           ~(if (:has-pg-wrapper settings)
@@ -762,7 +763,7 @@
           "-f" ~file
           ~(if show-stdout "" ">-")
           ~(if ignore-result "2>-" "")
-          ~(if ignore-result "|| true" "") "\n}"))
+          ~(if ignore-result "|| true" "") "\n )"))
         (remote-file/remote-file file :action :delete))))
 
 (defn create-database
