@@ -724,7 +724,7 @@
      :as-user username       - Run this script having sudoed to this (system)
                                user. Default: postgres
      :ignore-result          - Ignore any error return value out of psql."
-  [session & {:keys [as-user ignore-result instance show-stdout cluster]
+  [session & {:keys [as-user ignore-result instance show-stdout cluster title]
               :or {show-stdout true}
               :as options}]
   (let [settings (parameter/get-target-settings session :postgresql instance)
@@ -745,8 +745,9 @@
          ;; PostgreSQL are idempotent but spit out an error and an error exit
          ;; anyways (eg, create database on a database that already exists does
          ;; nothing, but is counted as an error).
-         "psql script"
+         (str "psql script" (if title (str " - " title) ""))
          ("{\n"
+          cd (~lib/user-home ~as-user) "&&"
           sudo "-u" ~as-user
           ~(if (:has-pg-wrapper settings)
              ""
