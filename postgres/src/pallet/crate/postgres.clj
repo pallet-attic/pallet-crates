@@ -723,8 +723,13 @@
    Options for how this script should be run:
      :as-user username       - Run this script having sudoed to this (system)
                                user. Default: postgres
-     :ignore-result          - Ignore any error return value out of psql."
-  [session & {:keys [as-user ignore-result instance show-stdout cluster title]
+     :db-name database       - the name of the database to connect to
+     :cluster cluster-name   - the name of the cluster to connect to
+     :instance instance-name - the instance (pg install) to use
+     :ignore-result          - Ignore any error return value out of psql
+     :title string           - A title to be used in script output."
+  [session & {:keys [as-user instance cluster db-name ignore-result show-stdout
+                     title]
               :or {show-stdout true}
               :as options}]
   (let [settings (parameter/get-target-settings session :postgresql instance)
@@ -760,6 +765,7 @@
           ~(if (:has-pg-wrapper settings)
              (format "--cluster %s/%s" (:version settings) cluster)
              "")
+          ~(if db-name (str "-d " db-name) "")
           "-f" ~file
           ~(if show-stdout "" ">-")
           ~(if ignore-result "2>-" "")
