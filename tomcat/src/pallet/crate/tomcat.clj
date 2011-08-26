@@ -807,7 +807,8 @@
              (connector :port \"8080\" :protocol \"HTTP/1.1\"
                 :connectionTimeout \"20000\" :redirectPort \"8443\")))"
   [& options]
-  {:pre [(not (map? (first options)))]} ; check not called as a crate function
+  {:pre [(not (and (map? (first options))
+                   (:server (first options))))]} ; check not called as crate fn
   (pallet-type
    ::server
    :members [::global-resources]
