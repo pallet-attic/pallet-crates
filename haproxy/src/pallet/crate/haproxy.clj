@@ -47,7 +47,7 @@
       (when->
        (#{:amzn-linux :centos} (session/os-family session))
        (epel/add-epel :version "5-4"))
-      (package/package "haproxy")))
+      (package/package "haproxy" :enable ["epel"])))
 
 (defmulti format-kv (fn format-kv-dispatch [k v & _] (class v)))
 
