@@ -8,6 +8,7 @@
    [pallet.action.remote-file :as remote-file]
    [pallet.session :as session]
    [pallet.script :as script]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
@@ -15,7 +16,7 @@
 (script/defscript ruby-version [])
 (script/defimpl ruby-version :default []
   (pipe ("ruby" "--version")
-        (cut nil :fields 2 :delimiter " ")))
+        (~lib/cut "" :fields 2 :delimiter " ")))
 
 (def src-packages
   {:aptitude ["zlib-devel"  "gcc" "gcc-c++" "make"
@@ -48,7 +49,7 @@
   ([request version]
      (let [basename (str "ruby-" version)
            tarfile (str basename ".tar.gz")
-           tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
+           tarpath (str (stevedore/script (~lib/tmp-dir)) "/" tarfile)]
        (->
         request
         (thread-expr/for-> [p (src-packages (session/packager request))]
@@ -61,7 +62,7 @@
            (do
              ~(stevedore/checked-script
                "Building ruby"
-               ("cd" (tmp-dir))
+               ("cd" (~lib/tmp-dir))
                ("tar" xfz ~tarfile)
                ("cd" ~basename)
                ("./configure" "--enable-shared" "--enable-pthread")
