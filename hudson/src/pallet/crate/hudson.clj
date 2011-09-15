@@ -79,6 +79,10 @@
       [:hudson :group] group)
      (directory/directory
       hudson-data-path :owner hudson-owner :group group :mode "0775")
+     ;; directories that need to be owned by the hudson user
+     (directory/directories
+      (map #(str hudson-data-path "/" %) ["plugins" "jobs" "fingerprints"])
+      :owner user :group group :mode "0775")
      (remote-file/remote-file
       file :url (hudson-url version)
       :md5 (hudson-md5 version))
@@ -334,10 +338,14 @@
              (select-keys options [:url :md5]))
         hudson-data-path (parameter/get-for-target
                           session [:hudson :data-path])
-        hudson-group (parameter/get-for-target
-                      session [:hudson :group])]
+        hudson-group (parameter/get-for-target session [:hudson :group])
+        hudson-user (parameter/get-for-target
+                     session [:hudson :user] hudson-user)]
     (-> session
-        (directory/directory (str hudson-data-path "/plugins"))
+        (directory/directory
+         (str hudson-data-path "/plugins")
+         :owner hudson-user    ; some plugins dynamically unpacked by hudson app
+         :group hudson-group :mode "0775")
         (thread-expr/apply->
          remote-file/remote-file
          (str hudson-data-path "/plugins/" (name plugin) ".hpi")
@@ -771,6 +779,7 @@
                                          subversion-credentials]
                                   :as options}]
   (let [hudson-owner (parameter/get-for-target session [:hudson :owner])
+        hudson-user (parameter/get-for-target session [:hudson :user])
         hudson-group (parameter/get-for-target session [:hudson :group])
         hudson-data-path (parameter/get-for-target
                           session [:hudson :data-path])
@@ -778,8 +787,9 @@
     (logging/trace (str "Hudson - configure job " job-name))
     (->
      session
-     (directory/directory (str hudson-data-path "/jobs/" job-name) :p true
-                :owner hudson-owner :group hudson-group :mode  "0775")
+     (directory/directory
+      (str hudson-data-path "/jobs/" job-name) :p true
+      :owner hudson-user :group hudson-group :mode  "0775")
      (remote-file/remote-file
       (str hudson-data-path "/jobs/" job-name "/config.xml")
       :content
@@ -790,11 +800,6 @@
        scm
        (dissoc options :scm :scm-type))
       :owner hudson-owner :group hudson-group :mode "0664")
-     (directory/directory
-      hudson-data-path
-      :owner hudson-owner :group hudson-group
-      :mode "g+w"
-      :recursive true)
      (thread-expr/when->
       subversion-credentials
       (remote-file/remote-file
@@ -873,8 +878,6 @@
                           session [:hudson :data-path])]
     (stevedore/do-script
      (directory* session "/usr/share/tomcat6/.m2" :group group :mode "g+w")
-     (directory*
-      session hudson-data-path :owner hudson-owner :group group :mode "775")
      (remote-file*
       session
       (str hudson-data-path "/" *maven-file*)
@@ -895,8 +898,6 @@
         hudson-data-path (parameter/get-for-target
                           session [:hudson :data-path])]
     (stevedore/do-script
-     (directory*
-      session hudson-data-path :owner hudson-owner :group group :mode "775")
      (remote-file*
       session
       (str hudson-data-path "/" *ant-file*)
