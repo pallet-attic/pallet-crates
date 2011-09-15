@@ -53,7 +53,7 @@
            (do
              ~(stevedore/checked-script
                "Building rubygems"
-               ("cd" (tmp-dir))
+               ("cd" (~lib/tmp-dir))
                ("tar" xfz ~tarfile)
                ("cd" ~basename)
                ("ruby" setup.rb)
