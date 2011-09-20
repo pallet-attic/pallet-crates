@@ -589,6 +589,8 @@
 (defn ant-job-xml
   "Generate ant job/config.xml content"
   [node-type scm-type scms options]
+  (println (format "About to emit nodetype: %s scm-type: %s scms: %s options: %s"
+                   node-type scm-type scms options))
   (enlive/xml-emit
    (enlive/xml-template
     (path-for *ant-job-config-file*) node-type [scm-type scms options]
@@ -622,7 +624,9 @@
                               (:aggregator-style-build options true)))
     [:ignoreUpstreamChanges] (xml/content
                               (truefalse
-                               (:ignore-upstream-changes options true))))
+                               (:ignore-upstream-changes options true)))
+    [:triggers]
+    (xml/html-content (string/join (map trigger-config (:triggers options)))))
    scm-type scms options))
 
 (defn script-job-xml
@@ -654,7 +658,9 @@
                               (:aggregator-style-build options true)))
     [:ignoreUpstreamChanges] (xml/content
                               (truefalse
-                               (:ignore-upstream-changes options true))))
+                               (:ignore-upstream-changes options true)))
+    [:triggers]
+    (xml/html-content (string/join (map trigger-config (:triggers options)))))
    scm-type scms options))
 
 (defmulti output-build-for
