@@ -62,7 +62,6 @@
      {"1.395" "6af0fb753a099616c74104c60d6b26dd"
       "1.377" "81b602c754fdd28cc4d57a9b82a7c1f0"
       "1.355" "5d616c367d7a7888100ae6e98a5f2bd7"})
-
 (defn tomcat-deploy
   "Install hudson on tomcat.
      :version version-string   - specify version, eg 1.355, or :latest"
@@ -346,21 +345,29 @@
         (plugin-config plugin options))))
 
 
+(defn- path-from-scm [scm-spec]
+  (if (string? scm-spec)
+    scm-spec
+    (:remote scm-spec)))
+
+(defn- local-from-scm [scm]
+  (if (string? scm) "" (or (:local scm) "")))
+
 (defn determine-scm-type
   "determine the scm type"
   [scm-spec]
-  (let [scm-path (first scm-spec)]
+  (let [scm-path (path-from-scm scm-spec)]
     (cond
      (.contains scm-path "git") :git
      (.contains scm-path "svn") :svn
      (or (.contains scm-path "cvs")
          (.contains scm-path "pserver")) :cvs
-     (.contains scm-path "bk") :bitkeeper
-     :else nil)))
+         (.contains scm-path "bk") :bitkeeper
+         :else nil)))
 
 (defmulti output-scm-for
   "Output the scm definition for specified type"
-  (fn [scm-type node-type scm-path options] scm-type))
+  (fn [scm-type node-type scm options] scm-type))
 
 (enlive/deffragment branch-transform
   [branch]
@@ -373,7 +380,7 @@
 ;; "Generate git scm configuration for job content"
 (enlive/defsnippet git-job-xml
   (path-for *git-file*) node-type
-  [node-type scm-path options]
+  [node-type scm options]
   [:branches :> :*]
   (xml/clone-for [branch (:branches options ["*"])]
                  (branch-transform branch))
@@ -390,7 +397,7 @@
 
   [:#url]
   (xml/do->
-   (xml/content scm-path)
+   (xml/content (path-from-scm scm))
    (xml/remove-attr :id))
   [:#refspec]
   (xml/do->
@@ -414,16 +421,17 @@
                             (xml/content tagopt))))
 
 (defmethod output-scm-for :git
-  [scm-type node-type scm-path options]
-  (git-job-xml node-type scm-path options))
+  [scm-type node-type scm options]
+  (git-job-xml node-type scm options))
 
 ;; "Generate svn scm configuration for job content"
 (enlive/defsnippet svn-job-xml
   (path-for *svn-file*) node-type
-  [node-type scm-path options]
+  [node-type scm options]
   [:locations :*] (xml/clone-for
                    [path (:branches options [""])]
-                   [:remote] (xml/content (str (first scm-path) path)))
+                   [:remote] (xml/content (str (path-from-scm scm) path))
+                   [:local] (xml/content (local-from-scm scm)))
   [:useUpdate] (xml/content (truefalse (:use-update options)))
   [:doRevert] (xml/content (truefalse (:do-revert options)))
   ;; :browser {:class "a.b.c" :url "http://..."}
@@ -441,8 +449,8 @@
   [:excludedCommitMessages] (xml/content (:excluded-commit-essages options)))
 
 (defmethod output-scm-for :svn
-  [scm-type node-type scm-path options]
-  (svn-job-xml node-type scm-path options))
+  [scm-type node-type scm options]
+  (svn-job-xml node-type scm options))
 
 (defn normalise-scms [scms]
   (map #(if (string? %) [%] %) scms))
@@ -799,7 +807,8 @@
       (str hudson-data-path "/jobs/" job-name "/subversion.credentials")
       :content
       (credential-store (zipmap
-                         (map #(str "<" (url-without-path (ffirst scm)) ">" %)
+                         (map #(str "<" (url-without-path
+                                         (path-from-scm (first scm))) ">" %)
                               (keys subversion-credentials))
                          (vals subversion-credentials)))
       :owner hudson-owner :group hudson-group :mode "0664")))))

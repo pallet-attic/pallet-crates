@@ -2,6 +2,7 @@
   <locations>
     <hudson.scm.SubversionSCM_-ModuleLocation>
       <remote>http://svn.somewhere.com</remote>
+      <local></local>
     </hudson.scm.SubversionSCM_-ModuleLocation>
   </locations>
   <useUpdate>true</useUpdate>
